@@ -26,3 +26,19 @@ class TicketRepository:
         )
 
         return list(result.scalars().all())
+
+    @staticmethod
+    async def get_customer_ticket(
+        session: AsyncSession,
+        ticket_id: int,
+        customer_id: UUID,
+    ) -> Ticket | None:
+
+        result = await session.execute(
+            select(Ticket).where(
+                Ticket.id == ticket_id,
+                Ticket.customer_id == customer_id,
+            )
+        )
+
+        return result.scalar_one_or_none()

@@ -29,3 +29,11 @@ class TicketService:
             session=session,
             customer_id=customer_id,
         )
+
+    @staticmethod
+    async def get_customer_ticket(session: AsyncSession,ticket_id: int,customer_id: UUID,) -> Ticket | None:
+        return await TicketRepository.get_customer_ticket(
+            session=session,
+            ticket_id=ticket_id,
+            customer_id=customer_id,
+        )
