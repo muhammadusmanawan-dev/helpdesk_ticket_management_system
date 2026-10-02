@@ -56,3 +56,12 @@ class TicketService:
             ticket=ticket,
             ticket_data=ticket_data,
         )
+    
+    @staticmethod
+    async def delete_customer_ticket(session:AsyncSession, ticket_id:int, customer_id:UUID):
+        ticket = await TicketRepository.get_customer_ticket(
+            session=session,
+            ticket_id=ticket_id,
+            customer_id=customer_id
+        )
+        return True

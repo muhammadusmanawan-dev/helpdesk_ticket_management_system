@@ -1,5 +1,4 @@
-from fastapi import APIRouter, Depends, status
-
+from fastapi import APIRouter, Depends, HTTPException, Response, status
 from app.common.permissions import require_role
 from app.common.dependencies import SessionDep
 from app.tickets.schemas import TicketCreate, TicketRead, TicketUpdate
@@ -57,7 +56,7 @@ async def update_customer_ticket(
     ticket_data: TicketUpdate,
     session: SessionDep,
     user: User = Depends(require_role("customer"))):
-    
+
     ticket = await TicketService.update_customer_ticket(
         session=session,
         ticket_id=ticket_id,
@@ -72,3 +71,18 @@ async def update_customer_ticket(
         )
 
     return ticket
+
+@router.delete("/{ticket_id}", response_model=TicketRead)
+async def delete_customer_ticket(ticket_id:int, session:SessionDep, user: User=Depends(require_role("customer"))):
+    deleted=await TicketService.delete_customer_ticket(
+        session=session,
+        ticket_id=ticket_id,
+        customer_id=user.id
+    )
+    if not deleted:
+        raise HTTPException(
+            status_code=status.HTTP_204_NO_CONTENT,
+            detail="Ticket not found"
+        )
+    
+    return Response(status_code=status.HTTP_204_NO_CONTENT)

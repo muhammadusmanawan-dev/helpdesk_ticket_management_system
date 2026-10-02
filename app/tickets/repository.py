@@ -44,6 +44,7 @@ class TicketRepository:
 
         return result.scalar_one_or_none()
 
+    @staticmethod
     async def update_customer_ticket(session: AsyncSession,ticket: Ticket,ticket_data: TicketUpdate,) -> Ticket:
         update_data = ticket_data.model_dump(
             exclude_unset=True
@@ -56,3 +57,8 @@ class TicketRepository:
         await session.refresh(ticket)
 
         return ticket
+    
+    @staticmethod
+    async def delete_customer_ticket(session: AsyncSession,ticket: Ticket,) -> None:
+        await session.delete(ticket)
+        await session.commit()
