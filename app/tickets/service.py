@@ -5,7 +5,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.tickets.models import Ticket
 from app.tickets.repository import TicketRepository
 from app.tickets.schemas import TicketCreate
-
+from sqlalchemy import select
 
 class TicketService:
 
@@ -21,4 +21,11 @@ class TicketService:
         return await TicketRepository.create_ticket(
             session=session,
             ticket=ticket,
+        )
+    
+    @staticmethod
+    async def get_customer_tickets(session: AsyncSession,customer_id: UUID,) -> list[Ticket]:
+        return await TicketRepository.get_customer_tickets(
+            session=session,
+            customer_id=customer_id,
         )
