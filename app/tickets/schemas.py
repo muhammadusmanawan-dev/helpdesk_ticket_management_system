@@ -21,3 +21,8 @@ class TicketRead(BaseModel):
     assigned_agent_id: UUID | None
     created_at: datetime
     updated_at: datetime
+
+class TicketUpdate(BaseModel):
+    title: str | None = None
+    description: str | None = None
+    priority: TicketPriority | None = None

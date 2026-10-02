@@ -4,11 +4,12 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.tickets.models import Ticket
 from sqlalchemy import select
+from app.tickets.schemas import TicketUpdate
 
 class TicketRepository:
 
     @staticmethod
-    async def create_ticket(session: AsyncSession,ticket: Ticket,) -> Ticket:
+    async def create_ticket(session: AsyncSession,ticket: Ticket) -> Ticket:
 
         session.add(ticket)
 
@@ -42,3 +43,16 @@ class TicketRepository:
         )
 
         return result.scalar_one_or_none()
+
+    async def update_customer_ticket(session: AsyncSession,ticket: Ticket,ticket_data: TicketUpdate,) -> Ticket:
+        update_data = ticket_data.model_dump(
+            exclude_unset=True
+        )
+
+        for field, value in update_data.items():
+            setattr(ticket, field, value)
+
+        await session.commit()
+        await session.refresh(ticket)
+
+        return ticket
