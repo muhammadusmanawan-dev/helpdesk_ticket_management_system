@@ -80,3 +80,18 @@ class TicketService:
             return None
         
         return await TicketRepository.update_ticket_status(session=session, ticket=ticket, status=ticket_data.status)
+
+    @staticmethod
+    async def assign_ticket(session: AsyncSession, ticket_id: int, agent_id: UUID) -> Ticket | None:
+        ticket = await TicketRepository.get_ticket(
+            session=session,
+            ticket_id=ticket_id,
+        )
+        if ticket is None:
+            return None
+
+        return await TicketRepository.assign_ticket(
+            session=session,
+            ticket=ticket,
+            agent_id=agent_id,
+        )

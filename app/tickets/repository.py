@@ -83,3 +83,26 @@ class TicketRepository:
         await session.refresh(ticket)
 
         return ticket
+        
+    @staticmethod
+    async def get_ticket(
+        session: AsyncSession,
+        ticket_id: int,
+    ) -> Ticket | None:
+
+        result = await session.execute(
+            select(Ticket).where(
+                Ticket.id == ticket_id
+            )
+        )
+
+        return result.scalar_one_or_none()
+
+    @staticmethod
+    async def assign_ticket(session: AsyncSession, ticket: Ticket, agent_id: UUID) -> Ticket:
+        ticket.assigned_agent_id = agent_id
+
+        await session.commit()
+        await session.refresh(ticket)
+
+        return ticket

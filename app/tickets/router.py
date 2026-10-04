@@ -5,6 +5,7 @@ from app.tickets.schemas import TicketCreate, TicketRead, TicketUpdate, TicketUp
 from app.tickets.service import TicketService
 from app.users.models import User
 from fastapi import HTTPException
+from uuid import UUID
 
 router = APIRouter()
 
@@ -72,6 +73,30 @@ async def update_ticket_status(
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
             detail="Ticket not found or not assigned to you",
+        )
+
+    return ticket
+
+@router.patch(
+    "/{ticket_id}/assign/{agent_id}",
+    response_model=TicketRead,
+)
+async def assign_ticket(
+    ticket_id: int,
+    agent_id: UUID,
+    session: SessionDep,
+    user: User = Depends(require_role("admin")),
+):
+    ticket = await TicketService.assign_ticket(
+        session=session,
+        ticket_id=ticket_id,
+        agent_id=agent_id,
+    )
+
+    if ticket is None:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Ticket not found",
         )
 
     return ticket
