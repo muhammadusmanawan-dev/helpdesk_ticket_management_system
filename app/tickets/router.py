@@ -1,7 +1,7 @@
 from fastapi import APIRouter, Depends, HTTPException, Response, status
 from app.common.permissions import require_role
 from app.common.dependencies import SessionDep
-from app.tickets.schemas import TicketCreate, TicketRead, TicketUpdate
+from app.tickets.schemas import TicketCreate, TicketRead, TicketUpdate, TicketUpdateStatus
 from app.tickets.service import TicketService
 from app.users.models import User
 from fastapi import HTTPException
@@ -53,6 +53,28 @@ async def get_assigned_tickets_by_id(
         session=session,
         agent_id=agent_id,
     )
+
+@router.patch("/{ticket_id}/status",response_model=TicketRead)
+async def update_ticket_status(
+    ticket_id: int,
+    ticket_data: TicketUpdateStatus,
+    session: SessionDep,
+    user: User = Depends(require_role("agent")),
+):
+    ticket = await TicketService.update_ticket_status(
+        session=session,
+        ticket_id=ticket_id,
+        agent_id=user.id,
+        ticket_data=ticket_data,
+    )
+
+    if ticket is None:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Ticket not found or not assigned to you",
+        )
+
+    return ticket
 
 @router.get("/{ticket_id}",response_model=TicketRead,)
 async def get_customer_ticket(

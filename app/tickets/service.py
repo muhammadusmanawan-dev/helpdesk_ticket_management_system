@@ -4,7 +4,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.tickets.models import Ticket
 from app.tickets.repository import TicketRepository
-from app.tickets.schemas import TicketCreate, TicketUpdate
+from app.tickets.schemas import TicketCreate, TicketUpdate, TicketUpdateStatus
 from sqlalchemy import select
 
 class TicketService:
@@ -72,3 +72,11 @@ class TicketService:
             session=session,
             agent_id=agent_id,
         )
+    
+    @staticmethod
+    async def update_ticket_status(session: AsyncSession, ticket_id:int, agent_id:UUID, ticket_data:TicketUpdateStatus)->Ticket|None:
+        ticket=await TicketRepository.get_assigned_ticket(session=session, ticket_id=ticket_id, agent_id=agent_id)
+        if ticket is None:
+            return None
+        
+        return await TicketRepository.update_ticket_status(session=session, ticket=ticket, status=ticket_data.status)

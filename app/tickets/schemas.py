@@ -26,3 +26,6 @@ class TicketUpdate(BaseModel):
     title: str | None = None
     description: str | None = None
     priority: TicketPriority | None = None
+
+class TicketUpdateStatus(BaseModel):
+    status:TicketStatus

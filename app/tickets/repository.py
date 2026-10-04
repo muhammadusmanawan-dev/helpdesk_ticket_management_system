@@ -69,3 +69,17 @@ class TicketRepository:
             select(Ticket).where(Ticket.assigned_agent_id==agent_id)
         )
         return list(result.scalars().all())
+
+    @staticmethod
+    async def get_assigned_ticket(session:AsyncSession, ticket_id:int, agent_id:UUID)-> Ticket| None:
+        result=await session.execute(select(Ticket).where(Ticket.id==ticket_id, Ticket.assigned_agent_id==agent_id))
+        return result.scalar_one_or_none()
+
+    @staticmethod
+    async def update_ticket_status(session: AsyncSession, ticket:Ticket, status)-> Ticket:
+        ticket.status=status
+
+        await session.commit()
+        await session.refresh(ticket)
+
+        return ticket
