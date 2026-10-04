@@ -30,6 +30,30 @@ async def get_customer_tickets(
         customer_id=user.id,
     )
 
+@router.get("/assigned", response_model=list[TicketRead])
+async def get_my_assigned_tickets(
+    session: SessionDep,
+    user: User = Depends(require_role("agent")),
+):
+    print("USER ID:", user.id)
+    print("USER ID TYPE:", type(user.id))
+
+    return await TicketService.get_assigned_tickets(
+        session=session,
+        agent_id=user.id,
+    )
+
+@router.get("/assigned/{agent_id}", response_model=list[TicketRead])
+async def get_assigned_tickets_by_id(
+    agent_id: int,
+    session: SessionDep,
+    user: User = Depends(require_role("agent")),
+):
+    return await TicketService.get_assigned_tickets(
+        session=session,
+        agent_id=agent_id,
+    )
+
 @router.get("/{ticket_id}",response_model=TicketRead,)
 async def get_customer_ticket(
     ticket_id: int,

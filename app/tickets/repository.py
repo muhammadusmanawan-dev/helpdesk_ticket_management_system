@@ -62,3 +62,10 @@ class TicketRepository:
     async def delete_customer_ticket(session: AsyncSession,ticket: Ticket,) -> None:
         await session.delete(ticket)
         await session.commit()
+
+    @staticmethod
+    async def get_assigned_tickets(session:AsyncSession, agent_id:UUID)-> list[Ticket]:
+        result=await session.execute(
+            select(Ticket).where(Ticket.assigned_agent_id==agent_id)
+        )
+        return list(result.scalars().all())

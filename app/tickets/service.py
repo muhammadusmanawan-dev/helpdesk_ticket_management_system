@@ -65,3 +65,10 @@ class TicketService:
             customer_id=customer_id
         )
         return True
+
+    @staticmethod
+    async def get_assigned_tickets(session: AsyncSession, agent_id: UUID,) -> list[Ticket]:
+        return await TicketRepository.get_assigned_tickets(
+            session=session,
+            agent_id=agent_id,
+        )
