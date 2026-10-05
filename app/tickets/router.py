@@ -157,3 +157,4 @@ async def delete_customer_ticket(ticket_id:int, session:SessionDep, user: User=D
         )
     
     return Response(status_code=status.HTTP_204_NO_CONTENT)
+
