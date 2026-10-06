@@ -6,6 +6,8 @@ from app.tickets.service import TicketService
 from app.users.models import User
 from fastapi import HTTPException
 from uuid import UUID
+from fastapi_filter import FilterDepends
+from app.tickets.filters import TicketFilter
 
 router = APIRouter()
 
@@ -21,14 +23,16 @@ async def create_ticket(
         customer_id=user.id,
     )
 
-@router.get("/",response_model=list[TicketRead],)
+@router.get("/", response_model=list[TicketRead])
 async def get_customer_tickets(
     session: SessionDep,
+    ticket_filter: TicketFilter = FilterDepends(TicketFilter),
     user: User = Depends(require_role("customer")),
 ):
     return await TicketService.get_customer_tickets(
         session=session,
         customer_id=user.id,
+        ticket_filter=ticket_filter,
     )
 
 @router.get("/assigned", response_model=list[TicketRead])

@@ -6,6 +6,8 @@ from app.tickets.models import Ticket
 from app.tickets.repository import TicketRepository
 from app.tickets.schemas import TicketCreate, TicketUpdate, TicketUpdateStatus
 from app.audit_logs.service import AuditLogService
+from app.tickets.filters import TicketFilter
+from sqlalchemy import select
 
 class TicketService:
 
@@ -24,10 +26,15 @@ class TicketService:
         )
     
     @staticmethod
-    async def get_customer_tickets(session: AsyncSession,customer_id: UUID,) -> list[Ticket]:
+    async def get_customer_tickets(session: AsyncSession,customer_id: UUID, ticket_filter:TicketFilter):
+        query = select(Ticket)
+        query = ticket_filter.filter(query)
+        query = ticket_filter.sort(query)
+
         return await TicketRepository.get_customer_tickets(
             session=session,
             customer_id=customer_id,
+            query=query
         )
 
     @staticmethod
