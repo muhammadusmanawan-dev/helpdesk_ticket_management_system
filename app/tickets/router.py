@@ -10,20 +10,25 @@ from fastapi_filter import FilterDepends
 from app.tickets.filters import TicketFilter
 from fastapi_pagination import Page, Params
 from fastapi_pagination.ext.sqlalchemy import apaginate
+from fastapi import BackgroundTasks
+from app.common.background_tasks import process_new_ticket
 
 router = APIRouter()
 
-@router.post("/",response_model=TicketRead,status_code=status.HTTP_201_CREATED,)
-async def create_ticket(
-    ticket_data: TicketCreate,
-    session: SessionDep,
-    user: User = Depends(require_role("customer")),
-):
-    return await TicketService.create_ticket(
+@router.post(
+    "/",
+    response_model=TicketRead,
+    status_code=status.HTTP_201_CREATED,
+)
+async def create_ticket(ticket_data: TicketCreate, background_tasks: BackgroundTasks, session: SessionDep, user: User = Depends(require_role("customer"))):
+    ticket = await TicketService.create_ticket(
         session=session,
         ticket_data=ticket_data,
         customer_id=user.id,
     )
+
+    background_tasks.add_task(process_new_ticket,ticket.id,)
+    return ticket
 
 @router.get("/", response_model=Page[TicketRead])
 async def get_customer_tickets(

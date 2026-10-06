@@ -1,0 +1,8 @@
+Ticket #13 Summary
+
+Title: Revise all the topics of the project and present it tomorrow
+Priority: low
+Status: open
+
+Description:
+learn all the subtopics and topics that are the part of the project
