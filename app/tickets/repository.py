@@ -83,7 +83,7 @@ class TicketRepository:
         await session.refresh(ticket)
 
         return ticket
-        
+    
     @staticmethod
     async def get_ticket(
         session: AsyncSession,

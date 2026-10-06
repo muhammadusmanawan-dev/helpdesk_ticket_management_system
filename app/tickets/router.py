@@ -87,11 +87,13 @@ async def assign_ticket(
     session: SessionDep,
     user: User = Depends(require_role("admin")),
 ):
+    
     ticket = await TicketService.assign_ticket(
-        session=session,
-        ticket_id=ticket_id,
-        agent_id=agent_id,
-    )
+    session=session,
+    ticket_id=ticket_id,
+    agent_id=agent_id,
+    assigned_by=user.id,
+)
 
     if ticket is None:
         raise HTTPException(
