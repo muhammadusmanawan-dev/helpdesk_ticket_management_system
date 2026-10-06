@@ -20,13 +20,15 @@ class TicketRepository:
     
     @staticmethod
     async def get_customer_tickets(session: AsyncSession,customer_id: UUID, query=None) -> list[Ticket]:
-        if query is None:
-            query=select(Ticket)
-        
-        query=query.where(Ticket.customer_id==customer_id)
-        result = await session.execute(query)
 
-        return list(result.scalars().all())
+        if query is None:
+            query = select(Ticket)
+
+        query = query.where(
+            Ticket.customer_id == customer_id
+        )
+
+        return query
 
     @staticmethod
     async def get_customer_ticket(

@@ -8,6 +8,8 @@ from fastapi import HTTPException
 from uuid import UUID
 from fastapi_filter import FilterDepends
 from app.tickets.filters import TicketFilter
+from fastapi_pagination import Page, Params
+from fastapi_pagination.ext.sqlalchemy import apaginate
 
 router = APIRouter()
 
@@ -23,16 +25,23 @@ async def create_ticket(
         customer_id=user.id,
     )
 
-@router.get("/", response_model=list[TicketRead])
+@router.get("/", response_model=Page[TicketRead])
 async def get_customer_tickets(
     session: SessionDep,
     ticket_filter: TicketFilter = FilterDepends(TicketFilter),
+    params: Params = Depends(),
     user: User = Depends(require_role("customer")),
 ):
-    return await TicketService.get_customer_tickets(
+    query = await TicketService.get_customer_tickets(
         session=session,
         customer_id=user.id,
         ticket_filter=ticket_filter,
+    )
+
+    return await apaginate(
+        session,
+        query,
+        params,
     )
 
 @router.get("/assigned", response_model=list[TicketRead])
