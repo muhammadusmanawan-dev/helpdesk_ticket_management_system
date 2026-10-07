@@ -3,11 +3,12 @@ from sqlalchemy.orm import Mapped, mapped_column
 from fastapi_users.db import SQLAlchemyBaseUserTableUUID
 
 from app.core.database import Base
+from enum import Enum
 
-class UserRole(str):
+class UserRole(str, Enum):
     ADMIN = "admin"
     CUSTOMER = "customer"
-    SUPPORT_AGENT = "support_agent"
+    AGENT = "agent"
 
 class User(SQLAlchemyBaseUserTableUUID, Base):
     __tablename__ = "users"
