@@ -8,6 +8,7 @@ from app.tickets.schemas import TicketCreate, TicketUpdate, TicketUpdateStatus
 from app.audit_logs.service import AuditLogService
 from app.tickets.filters import TicketFilter
 from sqlalchemy import select
+from app.notifications.service import NotificationService
 
 class TicketService:
 
@@ -100,6 +101,12 @@ class TicketService:
             status=ticket_data.status,
         )
 
+        await NotificationService.create_notification(
+        session=session,
+        user_id=ticket.customer_id,
+        message=f"Your ticket #{ticket.id} status changed from {old_status} to {ticket_data.status}.",
+        )
+
         await AuditLogService.create_log(
             session=session,
             ticket_id=ticket.id,
@@ -131,6 +138,12 @@ class TicketService:
             ticket=ticket,
             agent_id=agent_id,
         )
+
+        await NotificationService.create_notification(
+        session=session,
+        user_id=agent_id,
+        message=f"Ticket #{ticket.id} has been assigned to you.",
+    )
 
         await AuditLogService.create_log(
             session=session,

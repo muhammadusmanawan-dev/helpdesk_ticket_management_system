@@ -6,6 +6,7 @@ from app.comments.schemas import CommentCreate
 from app.tickets.models import Ticket
 from app.tickets.repository import TicketRepository
 from app.users.models import User
+from app.notifications.service import NotificationService
 
 
 class CommentService:
@@ -33,10 +34,26 @@ class CommentService:
             user_id=user.id,
         )
 
-        return await CommentRepository.create_comment(
-            session=session,
-            comment=comment,
-        )
+        comment = await CommentRepository.create_comment(
+        session=session,
+        comment=comment,
+    )
+
+        if user.role == "customer" and ticket.assigned_agent_id:
+            await NotificationService.create_notification(
+                session=session,
+                user_id=ticket.assigned_agent_id,
+                message=f"New comment added to ticket #{ticket.id}.",
+            )
+
+        elif user.role == "agent":
+            await NotificationService.create_notification(
+                session=session,
+                user_id=ticket.customer_id,
+                message=f"New comment added to ticket #{ticket.id}.",
+            )
+
+        return comment
 
     @staticmethod
     async def get_ticket_comments(
