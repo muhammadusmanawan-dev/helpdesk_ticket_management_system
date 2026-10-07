@@ -1,29 +1,45 @@
-from pathlib import Path
+from uuid import UUID
 
-from fastapi import UploadFile
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.attachments.models import Attachment
-from app.attachments.repository import AttachmentRepository
+from app.audit_logs.models import AuditLog
+from app.audit_logs.repository import AuditLogRepository
 from app.tickets.models import Ticket
 from app.tickets.repository import TicketRepository
 from app.users.models import User
 
 
-UPLOAD_DIR = Path("uploads")
-
-
-class AttachmentService:
+class AuditLogService:
 
     @staticmethod
-    async def create_attachment(
+    async def create_log(
+        session: AsyncSession,
+        ticket_id: int,
+        user_id: UUID,
+        action: str,
+        details: str,
+    ) -> AuditLog:
+
+        audit_log = AuditLog(
+            ticket_id=ticket_id,
+            user_id=user_id,
+            action=action,
+            details=details,
+        )
+
+        return await AuditLogRepository.create_audit_log(
+            session=session,
+            audit_log=audit_log,
+        )
+
+    @staticmethod
+    async def get_ticket_history(
         session: AsyncSession,
         ticket_id: int,
         user: User,
-        file: UploadFile,
-    ) -> Attachment | None:
+    ) -> list[AuditLog] | None:
 
-        ticket = await AttachmentService._get_accessible_ticket(
+        ticket = await AuditLogService._get_accessible_ticket(
             session=session,
             ticket_id=ticket_id,
             user=user,
@@ -32,47 +48,7 @@ class AttachmentService:
         if ticket is None:
             return None
 
-        ticket_directory = UPLOAD_DIR / f"ticket_{ticket_id}"
-        ticket_directory.mkdir(
-            parents=True,
-            exist_ok=True,
-        )
-
-        file_path = ticket_directory / file.filename
-
-        with open(file_path, "wb") as saved_file:
-            content = await file.read()
-            saved_file.write(content)
-
-        attachment = Attachment(
-            filename=file.filename,
-            file_path=str(file_path),
-            ticket_id=ticket_id,
-            uploaded_by=user.id,
-        )
-
-        return await AttachmentRepository.create_attachment(
-            session=session,
-            attachment=attachment,
-        )
-
-    @staticmethod
-    async def get_ticket_attachments(
-        session: AsyncSession,
-        ticket_id: int,
-        user: User,
-    ) -> list[Attachment] | None:
-
-        ticket = await AttachmentService._get_accessible_ticket(
-            session=session,
-            ticket_id=ticket_id,
-            user=user,
-        )
-
-        if ticket is None:
-            return None
-
-        return await AttachmentRepository.get_ticket_attachments(
+        return await AuditLogRepository.get_ticket_history(
             session=session,
             ticket_id=ticket_id,
         )
