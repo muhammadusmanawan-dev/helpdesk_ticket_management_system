@@ -13,6 +13,7 @@ from app.tickets.models import Ticket
 from app.comments.models import Comment
 from app.attachments.models import Attachment
 from app.audit_logs.models import AuditLog
+from app.notifications.models import Notification
 
 # Alembic Config object
 config = context.config
