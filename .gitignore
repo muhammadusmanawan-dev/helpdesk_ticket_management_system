@@ -6,3 +6,5 @@ __pycache__/
 .coverage
 htmlcov/
 .DS_Store
+helpdesk.db
+uploads/

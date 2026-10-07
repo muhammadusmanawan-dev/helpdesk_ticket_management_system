@@ -8,7 +8,11 @@ from alembic import context
 
 from app.core.config import settings
 from app.core.database import Base
-from app.users.models import User  # Ensure all models are imported here
+from app.users.models import User
+from app.tickets.models import Ticket
+from app.comments.models import Comment
+from app.attachments.models import Attachment
+from app.audit_logs.models import AuditLog
 
 # Alembic Config object
 config = context.config
