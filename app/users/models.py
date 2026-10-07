@@ -1,28 +1,20 @@
 from sqlalchemy import String
 from sqlalchemy.orm import Mapped, mapped_column
+from fastapi_users.db import SQLAlchemyBaseUserTableUUID
 
 from app.core.database import Base
+from enum import Enum
 
+class UserRole(str, Enum):
+    ADMIN = "admin"
+    CUSTOMER = "customer"
+    AGENT = "agent"
 
-class User(Base):
+class User(SQLAlchemyBaseUserTableUUID, Base):
     __tablename__ = "users"
-
-    id: Mapped[int] = mapped_column(
-        primary_key=True,
-        index=True,
-    )
-
-    email: Mapped[str] = mapped_column(
-        String(255),
-        unique=True,
-        index=True,
-    )
-
-    hashed_password: Mapped[str] = mapped_column(
-        String(255),
-    )
 
     role: Mapped[str] = mapped_column(
         String(20),
-        default="customer",
+        default=UserRole.CUSTOMER,
+        nullable=False,
     )
