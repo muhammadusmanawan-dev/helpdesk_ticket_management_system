@@ -19,14 +19,16 @@ class TicketRepository:
         return ticket
     
     @staticmethod
-    async def get_customer_tickets(session: AsyncSession,customer_id: UUID,) -> list[Ticket]:
-        result = await session.execute(
-            select(Ticket).where(
-                Ticket.customer_id == customer_id
-            )
+    async def get_customer_tickets(session: AsyncSession,customer_id: UUID, query=None) -> list[Ticket]:
+
+        if query is None:
+            query = select(Ticket)
+
+        query = query.where(
+            Ticket.customer_id == customer_id
         )
 
-        return list(result.scalars().all())
+        return query
 
     @staticmethod
     async def get_customer_ticket(
@@ -83,7 +85,7 @@ class TicketRepository:
         await session.refresh(ticket)
 
         return ticket
-        
+    
     @staticmethod
     async def get_ticket(
         session: AsyncSession,

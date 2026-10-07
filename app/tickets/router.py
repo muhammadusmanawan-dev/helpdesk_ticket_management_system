@@ -6,29 +6,47 @@ from app.tickets.service import TicketService
 from app.users.models import User
 from fastapi import HTTPException
 from uuid import UUID
+from fastapi_filter import FilterDepends
+from app.tickets.filters import TicketFilter
+from fastapi_pagination import Page, Params
+from fastapi_pagination.ext.sqlalchemy import apaginate
+from fastapi import BackgroundTasks
+from app.common.background_tasks import process_new_ticket
 
 router = APIRouter()
 
-@router.post("/",response_model=TicketRead,status_code=status.HTTP_201_CREATED,)
-async def create_ticket(
-    ticket_data: TicketCreate,
-    session: SessionDep,
-    user: User = Depends(require_role("customer")),
-):
-    return await TicketService.create_ticket(
+@router.post(
+    "/",
+    response_model=TicketRead,
+    status_code=status.HTTP_201_CREATED,
+)
+async def create_ticket(ticket_data: TicketCreate, background_tasks: BackgroundTasks, session: SessionDep, user: User = Depends(require_role("customer"))):
+    ticket = await TicketService.create_ticket(
         session=session,
         ticket_data=ticket_data,
         customer_id=user.id,
     )
 
-@router.get("/",response_model=list[TicketRead],)
+    background_tasks.add_task(process_new_ticket,ticket.id,)
+    return ticket
+
+@router.get("/", response_model=Page[TicketRead])
 async def get_customer_tickets(
     session: SessionDep,
+    ticket_filter: TicketFilter = FilterDepends(TicketFilter),
+    params: Params = Depends(),
     user: User = Depends(require_role("customer")),
 ):
-    return await TicketService.get_customer_tickets(
+    query = await TicketService.get_customer_tickets(
         session=session,
         customer_id=user.id,
+        ticket_filter=ticket_filter,
+    )
+
+    return await apaginate(
+        session,
+        query,
+        params,
     )
 
 @router.get("/assigned", response_model=list[TicketRead])
@@ -87,11 +105,13 @@ async def assign_ticket(
     session: SessionDep,
     user: User = Depends(require_role("admin")),
 ):
+    
     ticket = await TicketService.assign_ticket(
-        session=session,
-        ticket_id=ticket_id,
-        agent_id=agent_id,
-    )
+    session=session,
+    ticket_id=ticket_id,
+    agent_id=agent_id,
+    assigned_by=user.id,
+)
 
     if ticket is None:
         raise HTTPException(
