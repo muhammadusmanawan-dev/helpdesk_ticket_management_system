@@ -1,24 +1,45 @@
+from uuid import UUID
+
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.comments.models import Comment
-from app.comments.repository import CommentRepository
-from app.comments.schemas import CommentCreate
+from app.audit_logs.models import AuditLog
+from app.audit_logs.repository import AuditLogRepository
 from app.tickets.models import Ticket
 from app.tickets.repository import TicketRepository
 from app.users.models import User
 
 
-class CommentService:
+class AuditLogService:
 
     @staticmethod
-    async def create_comment(
+    async def create_log(
+        session: AsyncSession,
+        ticket_id: int,
+        user_id: UUID,
+        action: str,
+        details: str,
+    ) -> AuditLog:
+
+        audit_log = AuditLog(
+            ticket_id=ticket_id,
+            user_id=user_id,
+            action=action,
+            details=details,
+        )
+
+        return await AuditLogRepository.create_audit_log(
+            session=session,
+            audit_log=audit_log,
+        )
+
+    @staticmethod
+    async def get_ticket_history(
         session: AsyncSession,
         ticket_id: int,
         user: User,
-        comment_data: CommentCreate,
-    ) -> Comment | None:
+    ) -> list[AuditLog] | None:
 
-        ticket = await CommentService._get_accessible_ticket(
+        ticket = await AuditLogService._get_accessible_ticket(
             session=session,
             ticket_id=ticket_id,
             user=user,
@@ -27,34 +48,7 @@ class CommentService:
         if ticket is None:
             return None
 
-        comment = Comment(
-            content=comment_data.content,
-            ticket_id=ticket_id,
-            user_id=user.id,
-        )
-
-        return await CommentRepository.create_comment(
-            session=session,
-            comment=comment,
-        )
-
-    @staticmethod
-    async def get_ticket_comments(
-        session: AsyncSession,
-        ticket_id: int,
-        user: User,
-    ) -> list[Comment] | None:
-
-        ticket = await CommentService._get_accessible_ticket(
-            session=session,
-            ticket_id=ticket_id,
-            user=user,
-        )
-
-        if ticket is None:
-            return None
-
-        return await CommentRepository.get_ticket_comments(
+        return await AuditLogRepository.get_ticket_history(
             session=session,
             ticket_id=ticket_id,
         )
