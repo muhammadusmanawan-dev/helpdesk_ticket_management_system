@@ -1,6 +1,7 @@
 from typing import Any
 
 import httpx
+from fastapi import HTTPException, status
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.webhooks.models import Webhook
@@ -12,7 +13,16 @@ class WebhookService:
 
     @staticmethod
     async def create_webhook(session: AsyncSession, webhook_data: WebhookCreate) -> Webhook:
-        webhook = Webhook(url=str(webhook_data.url), event=webhook_data.event.value)
+        url = str(webhook_data.url)
+        event=webhook_data.event
+        existing_webhook=await WebhookRepository.get_by_url_and_event(session=session, url=url, event=event)
+        if existing_webhook:
+            raise HTTPException(
+                status_code=status.HTTP_409_CONFLICT,
+                detail="Webhook for this URL and event already exists"
+            )
+
+        webhook = Webhook(url=url,event=event)
 
         return await WebhookRepository.create(
             session=session,

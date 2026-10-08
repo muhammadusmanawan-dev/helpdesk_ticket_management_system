@@ -9,6 +9,13 @@ class WebhookRepository:
         await session.commit()
         await session.refresh(webhook)
         return webhook
+    
+    @staticmethod
+    async def get_by_url_and_event(session:AsyncSession, url:str, event:str)-> Webhook | None:
+        result= await session.execute(
+            select(Webhook).where(Webhook.url==url, Webhook.event==event)
+        )
+        return result.scalar_one_or_none
 
     @staticmethod
     async def get_active_webhooks(session: AsyncSession, event: str) -> list[Webhook]:
