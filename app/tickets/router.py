@@ -12,6 +12,7 @@ from fastapi_pagination import Page, Params
 from fastapi_pagination.ext.sqlalchemy import apaginate
 from fastapi import BackgroundTasks
 from app.common.background_tasks import process_new_ticket, process_ticket_webhook
+from app.webhooks.events import EVENT_PAYLOAD_BUILDERS, WebhookEvent
 
 router = APIRouter()
 
@@ -22,19 +23,11 @@ async def create_ticket(ticket_data: TicketCreate, background_tasks: BackgroundT
         ticket_data=ticket_data,
         customer_id=user.id,
     )
+    
+    event=WebhookEvent.TICKET_CREATED
+    payload=EVENT_PAYLOAD_BUILDERS[event](ticket)
+    background_tasks.add_task(process_ticket_webhook,event,payload)
 
-    background_tasks.add_task(process_new_ticket,ticket.id)
-    background_tasks.add_task(
-        process_ticket_webhook,
-        "ticket_created",
-        {
-            "event": "ticket_created",
-            "ticket_id": ticket.id,
-            "title": ticket.title,
-            "priority": ticket.priority,
-            "customer_id": str(ticket.customer_id),
-        },
-    )
     return ticket
 
 @router.get("/", response_model=Page[TicketRead])
@@ -101,15 +94,9 @@ async def update_ticket_status(
             detail="Ticket not found or not assigned to you",
         )
     
-    background_tasks.add_task(
-        process_ticket_webhook,
-        "ticket_status_changed",
-        {
-            "event": "ticket_status_changed",
-            "ticket_id": ticket.id,
-            "status": ticket.status,
-        },
-    )
+    event = WebhookEvent.TICKET_STATUS_CHANGED
+    payload = EVENT_PAYLOAD_BUILDERS[event](ticket)
+    background_tasks.add_task(process_ticket_webhook, event, payload)
 
     return ticket
 
@@ -138,15 +125,9 @@ async def assign_ticket(
             detail="Ticket not found",
         )
     
-    background_tasks.add_task(
-        process_ticket_webhook,
-        "ticket_assigned",
-        {
-            "event": "ticket_assigned",
-            "ticket_id": ticket.id,
-            "agent_id": str(agent_id),
-        },
-    )
+    event = WebhookEvent.TICKET_ASSIGNED
+    payload = EVENT_PAYLOAD_BUILDERS[event](ticket)
+    background_tasks.add_task(process_ticket_webhook, event, payload)
 
     return ticket
 
