@@ -15,7 +15,7 @@ class WebhookRepository:
         result= await session.execute(
             select(Webhook).where(Webhook.url==url, Webhook.event==event)
         )
-        return result.scalar_one_or_none
+        return result.scalar_one_or_none()
 
     @staticmethod
     async def get_active_webhooks(session: AsyncSession, event: str) -> list[Webhook]:
@@ -34,3 +34,17 @@ class WebhookRepository:
             select(Webhook).order_by(Webhook.created_at.desc())
         )
         return list(result.scalars().all())
+
+    @staticmethod
+    async def get_by_id(session: AsyncSession, webhook_id: int) -> Webhook | None:
+        result = await session.execute(
+            select(Webhook).where(
+                Webhook.id == webhook_id
+            )
+        )
+        return result.scalar_one_or_none()
+
+    @staticmethod
+    async def delete(session: AsyncSession, webhook: Webhook) -> None:
+        await session.delete(webhook)
+        await session.commit()

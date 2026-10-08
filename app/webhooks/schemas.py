@@ -15,3 +15,8 @@ class WebhookRead(BaseModel):
     event: str
     is_active: bool
     created_at: datetime
+
+class WebhookUpdate(BaseModel):
+    url: HttpUrl | None = None
+    event: WebhookEvent | None = None
+    is_active: bool | None = None
