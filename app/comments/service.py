@@ -7,7 +7,7 @@ from app.tickets.models import Ticket
 from app.tickets.repository import TicketRepository
 from app.users.models import User
 from app.notifications.service import NotificationService
-
+from app.users.models import UserRole
 
 class CommentService:
 
@@ -39,14 +39,14 @@ class CommentService:
         comment=comment,
     )
 
-        if user.role == "customer" and ticket.assigned_agent_id:
+        if user.role == UserRole.CUSTOMER and ticket.assigned_agent_id:
             await NotificationService.create_notification(
                 session=session,
                 user_id=ticket.assigned_agent_id,
                 message=f"New comment added to ticket #{ticket.id}.",
             )
 
-        elif user.role == "agent":
+        elif user.role == UserRole.AGENT:
             await NotificationService.create_notification(
                 session=session,
                 user_id=ticket.customer_id,
@@ -84,8 +84,8 @@ class CommentService:
     ) -> Ticket | None:
 
         repository_by_role = {
-            "customer": TicketRepository.get_customer_ticket,
-            "agent": TicketRepository.get_assigned_ticket,
+            UserRole.CUSTOMER: TicketRepository.get_customer_ticket,
+            UserRole.AGENT: TicketRepository.get_assigned_ticket,
         }
 
         repository_method = repository_by_role.get(user.role)
@@ -98,10 +98,10 @@ class CommentService:
             "ticket_id": ticket_id,
         }
 
-        if user.role == "customer":
+        if user.role == UserRole.CUSTOMER:
             kwargs["customer_id"] = user.id
 
-        elif user.role == "agent":
+        elif user.role == UserRole.AGENT:
             kwargs["agent_id"] = user.id
 
         return await repository_method(**kwargs)
