@@ -14,6 +14,7 @@ from app.comments.models import Comment
 from app.attachments.models import Attachment
 from app.audit_logs.models import AuditLog
 from app.notifications.models import Notification
+from app.webhooks.models import Webhook
 
 # Alembic Config object
 config = context.config
