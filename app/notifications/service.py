@@ -14,10 +14,11 @@ class NotificationService:
         )
 
     @staticmethod
-    async def get_user_notifications(session: AsyncSession,user_id: UUID) -> list[Notification]:
+    async def get_user_notifications(session: AsyncSession,user_id: UUID, search: str|None):
         return await NotificationRepository.get_user_notifications(
             session=session,
             user_id=user_id,
+            search=search
         )
 
     @staticmethod
@@ -27,16 +28,10 @@ class NotificationService:
             notification_id=notification_id,
         )
 
-        if notification is None:
+        if notification is None or notification.user_id != user_id:
             raise HTTPException(
                 status_code=status.HTTP_404_NOT_FOUND,
                 detail="Notification not found",
-            )
-
-        if notification.user_id != user_id:
-            raise HTTPException(
-                status_code=status.HTTP_403_FORBIDDEN,
-                detail="You cannot access this notification",
             )
 
         return await NotificationRepository.mark_as_read(

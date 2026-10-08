@@ -19,14 +19,14 @@ class NotificationRepository:
         return notification
 
     @staticmethod
-    async def get_user_notifications(session: AsyncSession, user_id: UUID) -> list[Notification]:
-        result = await session.execute(
-            select(Notification)
-            .where(Notification.user_id == user_id)
-            .order_by(Notification.created_at.desc())
-        )
+    async def get_user_notifications(session: AsyncSession, user_id: UUID, search:str|None):
+        query=select(Notification).where(Notification.user_id==user_id)
+        
+        if search:
+            query=query.where(Notification.message.ilike(f"%{search}%"))
 
-        return list(result.scalars().all())
+        query=query.order_by(Notification.created_at.desc())
+        return query
 
     @staticmethod
     async def mark_as_read(session: AsyncSession, notification: Notification) -> Notification:

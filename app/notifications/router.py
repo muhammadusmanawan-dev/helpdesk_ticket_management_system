@@ -7,19 +7,20 @@ from app.notifications.service import NotificationService
 from app.users.models import User
 from app.users.auth import current_active_user
 
+from fastapi_pagination import Page, Params
+from fastapi_pagination.ext.sqlalchemy import apaginate
 
 router = APIRouter()
 
 
-@router.get("/", response_model=list[NotificationRead])
-async def get_notifications(
-    session: AsyncSession = Depends(get_session),
-    user: User = Depends(current_active_user),
-):
-    return await NotificationService.get_user_notifications(
+@router.get("/", response_model=Page[NotificationRead])
+async def get_notifications(session: AsyncSession = Depends(get_session), params:Params=Depends(), user: User = Depends(current_active_user), search:str | None=None):
+    query = await NotificationService.get_user_notifications(
         session=session,
         user_id=user.id,
+        search=search
     )
+    return await apaginate(session,query,params)
 
 
 @router.patch("/{notification_id}/read", response_model=NotificationRead)
