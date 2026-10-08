@@ -21,10 +21,13 @@ class TicketService:
             customer_id=customer_id,
         )
 
-        return await TicketRepository.create_ticket(
+        ticket = await TicketRepository.create_ticket(
             session=session,
             ticket=ticket,
         )
+    
+        await session.commit()
+        return ticket
     
     @staticmethod
     async def get_customer_tickets(session: AsyncSession,customer_id: UUID, ticket_filter:TicketFilter):
@@ -115,6 +118,7 @@ class TicketService:
             details=f"Status changed from {old_status} to {ticket_data.status}",
         )
 
+        await session.commit()
         return ticket
 
     @staticmethod
@@ -153,4 +157,5 @@ class TicketService:
             details=f"Ticket assigned to agent {agent_id}",
         )
 
+        await session.commit()
         return ticket

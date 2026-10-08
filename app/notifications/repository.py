@@ -13,7 +13,7 @@ class NotificationRepository:
         )
 
         session.add(notification)
-        await session.commit()
+        await session.flush()
         await session.refresh(notification)
 
         return notification

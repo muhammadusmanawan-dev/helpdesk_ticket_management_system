@@ -8,7 +8,7 @@ class AuditLogRepository:
     @staticmethod
     async def create_audit_log(session: AsyncSession, audit_log: AuditLog) -> AuditLog:
         session.add(audit_log)
-        await session.commit()
+        await session.flush()
         await session.refresh(audit_log)
         return audit_log
     
