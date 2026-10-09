@@ -8,3 +8,4 @@ htmlcov/
 .DS_Store
 helpdesk.db
 uploads/
+ticket_summaries/

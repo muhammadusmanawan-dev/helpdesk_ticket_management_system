@@ -11,23 +11,23 @@ from app.tickets.filters import TicketFilter
 from fastapi_pagination import Page, Params
 from fastapi_pagination.ext.sqlalchemy import apaginate
 from fastapi import BackgroundTasks
-from app.common.background_tasks import process_new_ticket
+from app.common.background_tasks import process_new_ticket, process_ticket_webhook
+from app.webhooks.events import EVENT_PAYLOAD_BUILDERS, WebhookEvent
 
 router = APIRouter()
 
-@router.post(
-    "/",
-    response_model=TicketRead,
-    status_code=status.HTTP_201_CREATED,
-)
+@router.post("/", response_model=TicketRead, status_code=status.HTTP_201_CREATED)
 async def create_ticket(ticket_data: TicketCreate, background_tasks: BackgroundTasks, session: SessionDep, user: User = Depends(require_role("customer"))):
     ticket = await TicketService.create_ticket(
         session=session,
         ticket_data=ticket_data,
         customer_id=user.id,
     )
+    
+    event=WebhookEvent.TICKET_CREATED
+    payload=EVENT_PAYLOAD_BUILDERS[event](ticket)
+    background_tasks.add_task(process_ticket_webhook,event,payload)
 
-    background_tasks.add_task(process_new_ticket,ticket.id,)
     return ticket
 
 @router.get("/", response_model=Page[TicketRead])
@@ -64,7 +64,7 @@ async def get_my_assigned_tickets(
 
 @router.get("/assigned/{agent_id}", response_model=list[TicketRead])
 async def get_assigned_tickets_by_id(
-    agent_id: int,
+    agent_id: UUID,
     session: SessionDep,
     user: User = Depends(require_role("agent")),
 ):
@@ -77,6 +77,7 @@ async def get_assigned_tickets_by_id(
 async def update_ticket_status(
     ticket_id: int,
     ticket_data: TicketUpdateStatus,
+    background_tasks:BackgroundTasks,
     session: SessionDep,
     user: User = Depends(require_role("agent")),
 ):
@@ -92,6 +93,10 @@ async def update_ticket_status(
             status_code=status.HTTP_404_NOT_FOUND,
             detail="Ticket not found or not assigned to you",
         )
+    
+    event = WebhookEvent.TICKET_STATUS_CHANGED
+    payload = EVENT_PAYLOAD_BUILDERS[event](ticket)
+    background_tasks.add_task(process_ticket_webhook, event, payload)
 
     return ticket
 
@@ -102,6 +107,7 @@ async def update_ticket_status(
 async def assign_ticket(
     ticket_id: int,
     agent_id: UUID,
+    background_tasks: BackgroundTasks,
     session: SessionDep,
     user: User = Depends(require_role("admin")),
 ):
@@ -118,6 +124,10 @@ async def assign_ticket(
             status_code=status.HTTP_404_NOT_FOUND,
             detail="Ticket not found",
         )
+    
+    event = WebhookEvent.TICKET_ASSIGNED
+    payload = EVENT_PAYLOAD_BUILDERS[event](ticket)
+    background_tasks.add_task(process_ticket_webhook, event, payload)
 
     return ticket
 
