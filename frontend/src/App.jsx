@@ -1,7 +1,9 @@
 
 import { useState } from 'react'
 import Sidebar from './components/organisms/Sidebar'
-import StatusBadge from './components/atoms/StatusBadge'
+import StatCard from './components/molecules/StatCard'
+import SearchBar from './components/molecules/SearchBar'
+import TicketTable from './components/organisms/TicketTable'
 import './App.css'
 
 const sampleTickets = [
@@ -78,35 +80,29 @@ function App() {
 
 
         <section className="stats-grid">
-          <div className="stat-card">
-            <span>Total tickets</span>
-            <strong>{sampleTickets.length}</strong>
-            <small>All sample tickets</small>
-          </div>
+          <StatCard
+            title="Total tickets"
+            value={sampleTickets.length}
+            description="All sample tickets"
+          />
 
-          <div className="stat-card">
-            <span>Open</span>
-            <strong>
-              {sampleTickets.filter((ticket) => ticket.status === 'Open').length}
-            </strong>
-            <small>Waiting for action</small>
-          </div>
+          <StatCard
+            title="Open"
+            value={sampleTickets.filter((ticket) => ticket.status === 'Open').length}
+            description="Waiting for action"
+          />
 
-          <div className="stat-card">
-            <span>In progress</span>
-            <strong>
-              {sampleTickets.filter((ticket) => ticket.status === 'In Progress').length}
-            </strong>
-            <small>Currently being handled</small>
-          </div>
+          <StatCard
+            title="In progress"
+            value={sampleTickets.filter((ticket) => ticket.status === 'In Progress').length}
+            description="Currently being handled"
+          />
 
-          <div className="stat-card">
-            <span>Resolved</span>
-            <strong>
-              {sampleTickets.filter((ticket) => ticket.status === 'Resolved').length}
-            </strong>
-            <small>Completed tickets</small>
-          </div>
+          <StatCard
+            title="Resolved"
+            value={sampleTickets.filter((ticket) => ticket.status === 'Resolved').length}
+            description="Completed tickets"
+          />
         </section>
 
 
@@ -116,54 +112,14 @@ function App() {
               <h2>Recent tickets</h2>
               <p>Review and search support requests.</p>
             </div>
-            <input
-              className="search-input"
-              type="search"
-              placeholder="Search tickets..."
+
+            <SearchBar
               value={search}
-              onChange={(event) => setSearch(event.target.value)}
+              onChange={setSearch}
             />
           </div>
 
-          <div className="table-wrapper">
-            <table>
-              <thead>
-                <tr>
-                  <th>Ticket</th>
-                  <th>Customer</th>
-                  <th>Priority</th>
-                  <th>Status</th>
-                </tr>
-              </thead>
-              <tbody>
-                {filteredTickets.map((ticket) => (
-                  <tr key={ticket.id}>
-                    <td>
-                      <strong>{ticket.title}</strong>
-                      <small>#{ticket.id}</small>
-                    </td>
-                    <td>{ticket.customer}</td>
-                    <td>
-                      <span className={`priority ${ticket.priority.toLowerCase()}`}>
-                        {ticket.priority}
-                      </span>
-                    </td>
-                    <td>
-                      <StatusBadge status={ticket.status} />
-                    </td>
-                  </tr>
-                ))}
-
-                {filteredTickets.length === 0 && (
-                  <tr>
-                    <td colSpan="4" className="empty-state">
-                      No matching tickets found.
-                    </td>
-                  </tr>
-                )}
-              </tbody>
-            </table>
-          </div>
+          <TicketTable tickets={filteredTickets} />
         </section>
       </main>
     </div>
