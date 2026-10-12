@@ -1,4 +1,3 @@
-
 import { useEffect, useState } from 'react'
 
 import Sidebar from './components/organisms/Sidebar'
@@ -7,6 +6,7 @@ import StatCard from './components/molecules/StatCard'
 import SearchBar from './components/molecules/SearchBar'
 import TicketTable from './components/organisms/TicketTable'
 import CreateTicketForm from './components/organisms/CreateTicketForm'
+import TicketDetails from './components/organisms/TicketDetails'
 
 import { loginUser, getAccessToken, logoutUser } from './services/authService'
 import { getCustomerTickets, createCustomerTicket } from './services/ticketService'
@@ -22,6 +22,7 @@ function App() {
   const [loginError, setLoginError] = useState('')
   const [ticketsLoading, setTicketsLoading] = useState(false)
   const [ticketsError, setTicketsError] = useState('')
+  const [selectedTicket, setSelectedTicket] = useState(null)
 
   const [createLoading, setCreateLoading] = useState(false)
   const [createError, setCreateError] = useState('')
@@ -47,6 +48,7 @@ function App() {
     setTickets([])
     setSearch('')
     setTicketsError('')
+    setSelectedTicket(null)
   }
 
   async function handleCreateTicket(ticketData) {
@@ -147,74 +149,85 @@ function App() {
           </div>
         </header>
 
-        <section className="welcome-section">
-          <div>
-            <p className="eyebrow">TICKET WORKSPACE</p>
-            <h2>Welcome back!</h2>
-            <p>Here is an overview of your support tickets.</p>
-          </div>
-        </section>
+        {selectedTicket ? (
+          <TicketDetails
+            ticket={selectedTicket}
+            token={token}
+            onBack={() => setSelectedTicket(null)}
+          />
+        ) : (
+          <>
+            <section className="welcome-section">
+              <div>
+                <p className="eyebrow">TICKET WORKSPACE</p>
+                <h2>Welcome back!</h2>
+                <p>Here is an overview of your support tickets.</p>
+              </div>
+            </section>
 
-        {ticketsError && (
-          <p className="api-error">
-            Could not load tickets: {ticketsError}
-          </p>
+            {ticketsError && (
+              <p className="api-error">
+                Could not load tickets: {ticketsError}
+              </p>
+            )}
+
+            <section className="stats-grid">
+              <StatCard
+                title="Total tickets"
+                value={tickets.length}
+                description="Tickets loaded from backend"
+              />
+
+              <StatCard
+                title="Open"
+                value={tickets.filter((ticket) => ticket.status === 'Open').length}
+                description="Waiting for action"
+              />
+
+              <StatCard
+                title="In progress"
+                value={tickets.filter((ticket) => ticket.status === 'In Progress').length}
+                description="Currently being handled"
+              />
+
+              <StatCard
+                title="Resolved"
+                value={tickets.filter((ticket) => ticket.status === 'Resolved').length}
+                description="Completed tickets"
+              />
+            </section>
+
+            <CreateTicketForm
+              onCreate={handleCreateTicket}
+              loading={createLoading}
+              error={createError}
+              success={createSuccess}
+            />
+
+            <section className="tickets-section">
+              <div className="section-heading">
+                <div>
+                  <h2>Recent tickets</h2>
+                  <p>Review and search support requests.</p>
+                </div>
+
+                <SearchBar value={search} onChange={setSearch} />
+              </div>
+
+              {ticketsLoading ? (
+                <p>Loading tickets...</p>
+              ) : (
+                <TicketTable
+                  tickets={filteredTickets}
+                  onViewDetails={setSelectedTicket}
+                />
+              )}
+            </section>
+          </>
         )}
-
-        <section className="stats-grid">
-          <StatCard
-            title="Total tickets"
-            value={tickets.length}
-            description="Tickets loaded from backend"
-          />
-
-          <StatCard
-            title="Open"
-            value={tickets.filter((ticket) => ticket.status === 'Open').length}
-            description="Waiting for action"
-          />
-
-          <StatCard
-            title="In progress"
-            value={tickets.filter((ticket) => ticket.status === 'In Progress').length}
-            description="Currently being handled"
-          />
-
-          <StatCard
-            title="Resolved"
-            value={tickets.filter((ticket) => ticket.status === 'Resolved').length}
-            description="Completed tickets"
-          />
-        </section>
-
-        <CreateTicketForm
-          onCreate={handleCreateTicket}
-          loading={createLoading}
-          error={createError}
-          success={createSuccess}
-        />
-
-        <section className="tickets-section">
-          <div className="section-heading">
-            <div>
-              <h2>Recent tickets</h2>
-              <p>Review and search support requests.</p>
-            </div>
-
-            <SearchBar value={search} onChange={setSearch} />
-          </div>
-
-          {ticketsLoading ? (
-            <p>Loading tickets...</p>
-          ) : (
-            <TicketTable tickets={filteredTickets} />
-          )}
-        </section>
       </main>
     </div>
   )
 }
-
-
 
 export default App

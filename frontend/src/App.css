@@ -523,3 +523,75 @@ td small {
 .success-message {
   color: #15803d;
 }
+
+.ticket-details-section {
+  margin-top: 28px;
+  padding: 24px;
+  background: white;
+  border: 1px solid #e5e7eb;
+  border-radius: 12px;
+}
+
+.ticket-details-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 16px;
+  margin-top: 24px;
+}
+
+.ticket-details-header h2 {
+  margin-top: 8px;
+}
+
+.ticket-information,
+.ticket-comments {
+  margin-top: 28px;
+  padding-top: 20px;
+  border-top: 1px solid #e5e7eb;
+}
+
+.comment-card {
+  margin: 14px 0;
+  padding: 16px;
+  background: #f9fafb;
+  border: 1px solid #e5e7eb;
+  border-radius: 8px;
+}
+
+.comment-card p {
+  white-space: pre-wrap;
+}
+
+.comment-card small {
+  color: #6b7280;
+}
+
+.comment-form {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  margin-top: 24px;
+}
+
+.comment-form textarea {
+  width: 100%;
+  padding: 12px;
+  border: 1px solid #d1d5db;
+  border-radius: 6px;
+  font: inherit;
+  resize: vertical;
+}
+
+.comment-form button {
+  align-self: flex-start;
+  padding: 11px 18px;
+  border: none;
+  border-radius: 6px;
+  cursor: pointer;
+}
+
+.comment-form button:disabled {
+  cursor: not-allowed;
+  opacity: 0.6;
+}

@@ -1,7 +1,7 @@
 
 import StatusBadge from '../atoms/StatusBadge'
 
-function TicketTable({ tickets }) {
+function TicketTable({ tickets, onViewDetails }) {
     return (
         <div className="table-wrapper">
             <table>
@@ -11,6 +11,7 @@ function TicketTable({ tickets }) {
                         <th>Customer</th>
                         <th>Priority</th>
                         <th>Status</th>
+                        <th>Action</th>
                     </tr>
                 </thead>
 
@@ -25,7 +26,9 @@ function TicketTable({ tickets }) {
                             <td>{ticket.customer}</td>
 
                             <td>
-                                <span className={`priority ${ticket.priority.toLowerCase()}`}>
+                                <span
+                                    className={`priority ${ticket.priority.toLowerCase()}`}
+                                >
                                     {ticket.priority}
                                 </span>
                             </td>
@@ -33,12 +36,21 @@ function TicketTable({ tickets }) {
                             <td>
                                 <StatusBadge status={ticket.status} />
                             </td>
+
+                            <td>
+                                <button
+                                    type="button"
+                                    onClick={() => onViewDetails(ticket)}
+                                >
+                                    View Details
+                                </button>
+                            </td>
                         </tr>
                     ))}
 
                     {tickets.length === 0 && (
                         <tr>
-                            <td colSpan="4" className="empty-state">
+                            <td colSpan="5" className="empty-state">
                                 No matching tickets found.
                             </td>
                         </tr>

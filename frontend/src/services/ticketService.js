@@ -80,3 +80,47 @@ export async function createCustomerTicket(ticketData, token) {
 
     return normalizeTicket(data)
 }
+
+export async function getTicketComments(ticketId, token) {
+    const response = await fetch(
+        `${API_BASE_URL} /tickets/${ticketId}/comments`,
+        {
+            method: 'GET',
+            headers: {
+                Accept: 'application/json',
+                Authorization: `Bearer ${token}`,
+            },
+        }
+    )
+
+    if (!response.ok) {
+        throw new Error(
+            `Failed to fetch comments: ${response.status} - ${await getErrorMessage(response)}`
+        )
+    }
+
+    return response.json()
+}
+
+export async function createTicketComment(ticketId, content, token) {
+    const response = await fetch(
+        `${API_BASE_URL}/tickets/${ticketId}/comments`,
+        {
+            method: 'POST',
+            headers: {
+                Accept: 'application/json',
+                'Content-Type': 'application/json',
+                Authorization: `Bearer ${token}`,
+            },
+            body: JSON.stringify({ content }),
+        }
+    )
+
+    if (!response.ok) {
+        throw new Error(
+            `Failed to add comment: ${response.status} - ${await getErrorMessage(response)}`
+        )
+    }
+
+    return response.json()
+}
