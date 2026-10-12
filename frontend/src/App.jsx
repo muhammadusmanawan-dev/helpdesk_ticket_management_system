@@ -1,55 +1,106 @@
 
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
+
 import Sidebar from './components/organisms/Sidebar'
+import LoginForm from './components/organisms/LoginForm'
 import StatCard from './components/molecules/StatCard'
 import SearchBar from './components/molecules/SearchBar'
 import TicketTable from './components/organisms/TicketTable'
+
+import { loginUser, getAccessToken, logoutUser } from './services/authService'
+import { getCustomerTickets } from './services/ticketService'
+
 import './App.css'
 
-const sampleTickets = [
-  {
-    id: 104,
-    title: 'Internet is not working',
-    customer: 'Ali Khan',
-    priority: 'High',
-    status: 'Open',
-  },
-  {
-    id: 103,
-    title: 'Unable to reset password',
-    customer: 'Sara Ahmed',
-    priority: 'Medium',
-    status: 'In Progress',
-  },
-  {
-    id: 102,
-    title: 'Request for account access',
-    customer: 'Usman Malik',
-    priority: 'Low',
-    status: 'Resolved',
-  },
-  {
-    id: 101,
-    title: 'Application is running slowly',
-    customer: 'Ayesha Noor',
-    priority: 'High',
-    status: 'Open',
-  },
-]
-
 function App() {
+  const [token, setToken] = useState(() => getAccessToken())
+  const [tickets, setTickets] = useState([])
   const [search, setSearch] = useState('')
 
-  const filteredTickets = sampleTickets.filter((ticket) =>
+  const [loginLoading, setLoginLoading] = useState(false)
+  const [loginError, setLoginError] = useState('')
+  const [ticketsLoading, setTicketsLoading] = useState(false)
+  const [ticketsError, setTicketsError] = useState('')
+
+  async function handleLogin(email, password) {
+    setLoginLoading(true)
+    setLoginError('')
+
+    try {
+      const data = await loginUser(email, password)
+      setToken(data.access_token)
+    } catch (error) {
+      setLoginError(error.message)
+    } finally {
+      setLoginLoading(false)
+    }
+  }
+
+  function handleLogout() {
+    logoutUser()
+    setToken(null)
+    setTickets([])
+    setSearch('')
+    setTicketsError('')
+  }
+
+  useEffect(() => {
+    if (!token) return
+
+    let cancelled = false
+
+    async function loadTickets() {
+      setTicketsLoading(true)
+      setTicketsError('')
+
+      try {
+        const data = await getCustomerTickets(token)
+
+        if (!cancelled) {
+          setTickets(data)
+        }
+      } catch (error) {
+        if (!cancelled) {
+          setTicketsError(error.message)
+
+          if (error.message.includes('401')) {
+            logoutUser()
+            setToken(null)
+          }
+        }
+      } finally {
+        if (!cancelled) {
+          setTicketsLoading(false)
+        }
+      }
+    }
+
+    loadTickets()
+
+    return () => {
+      cancelled = true
+    }
+  }, [token])
+
+  const filteredTickets = tickets.filter((ticket) =>
     ticket.title.toLowerCase().includes(search.toLowerCase())
   )
+
+  if (!token) {
+    return (
+      <LoginForm
+        onLogin={handleLogin}
+        loading={loginLoading}
+        error={loginError}
+      />
+    )
+  }
 
   return (
     <div className="app-layout">
       <Sidebar />
 
       <main className="main-content">
-
         <header className="topbar">
           <div>
             <p className="eyebrow">SUPPORT WORKSPACE</p>
@@ -57,11 +108,16 @@ function App() {
           </div>
 
           <div className="topbar-user">
-            <div className="avatar">U</div>
-            <div>User</div>
+            <span>User</span>
+            <button
+              className="logout-button"
+              type="button"
+              onClick={handleLogout}
+            >
+              Log out
+            </button>
           </div>
         </header>
-
 
         <section className="welcome-section">
           <div>
@@ -69,42 +125,39 @@ function App() {
             <h2>Welcome back!</h2>
             <p>Here is an overview of your support tickets.</p>
           </div>
-          <button
-            className="primary-button"
-            type="button"
-            onClick={() => alert('We will build ticket creation next.')}
-          >
-            + Create ticket
-          </button>
         </section>
 
+        {ticketsError && (
+          <p className="api-error">
+            Could not load tickets: {ticketsError}
+          </p>
+        )}
 
         <section className="stats-grid">
           <StatCard
             title="Total tickets"
-            value={sampleTickets.length}
-            description="All sample tickets"
+            value={tickets.length}
+            description="Tickets loaded from backend"
           />
 
           <StatCard
             title="Open"
-            value={sampleTickets.filter((ticket) => ticket.status === 'Open').length}
+            value={tickets.filter((ticket) => ticket.status === 'Open').length}
             description="Waiting for action"
           />
 
           <StatCard
             title="In progress"
-            value={sampleTickets.filter((ticket) => ticket.status === 'In Progress').length}
+            value={tickets.filter((ticket) => ticket.status === 'In Progress').length}
             description="Currently being handled"
           />
 
           <StatCard
             title="Resolved"
-            value={sampleTickets.filter((ticket) => ticket.status === 'Resolved').length}
+            value={tickets.filter((ticket) => ticket.status === 'Resolved').length}
             description="Completed tickets"
           />
         </section>
-
 
         <section className="tickets-section">
           <div className="section-heading">
@@ -113,13 +166,14 @@ function App() {
               <p>Review and search support requests.</p>
             </div>
 
-            <SearchBar
-              value={search}
-              onChange={setSearch}
-            />
+            <SearchBar value={search} onChange={setSearch} />
           </div>
 
-          <TicketTable tickets={filteredTickets} />
+          {ticketsLoading ? (
+            <p>Loading tickets...</p>
+          ) : (
+            <TicketTable tickets={filteredTickets} />
+          )}
         </section>
       </main>
     </div>
