@@ -470,3 +470,56 @@ td small {
   align-items: center;
   gap: 12px;
 }
+
+
+.create-ticket-section {
+  margin: 28px 0;
+  padding: 24px;
+  background: white;
+  border: 1px solid #e5e7eb;
+  border-radius: 12px;
+}
+
+.create-ticket-section h2 {
+  margin-top: 0;
+}
+
+.create-ticket-form {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  max-width: 650px;
+  margin-top: 20px;
+}
+
+.create-ticket-form input,
+.create-ticket-form textarea,
+.create-ticket-form select {
+  width: 100%;
+  padding: 11px 12px;
+  border: 1px solid #d1d5db;
+  border-radius: 6px;
+  font: inherit;
+}
+
+.create-ticket-form textarea {
+  resize: vertical;
+}
+
+.create-ticket-form button {
+  align-self: flex-start;
+  margin-top: 8px;
+  padding: 11px 18px;
+  border: none;
+  border-radius: 6px;
+  cursor: pointer;
+}
+
+.create-ticket-form button:disabled {
+  cursor: not-allowed;
+  opacity: 0.6;
+}
+
+.success-message {
+  color: #15803d;
+}

@@ -6,9 +6,10 @@ import LoginForm from './components/organisms/LoginForm'
 import StatCard from './components/molecules/StatCard'
 import SearchBar from './components/molecules/SearchBar'
 import TicketTable from './components/organisms/TicketTable'
+import CreateTicketForm from './components/organisms/CreateTicketForm'
 
 import { loginUser, getAccessToken, logoutUser } from './services/authService'
-import { getCustomerTickets } from './services/ticketService'
+import { getCustomerTickets, createCustomerTicket } from './services/ticketService'
 
 import './App.css'
 
@@ -21,6 +22,10 @@ function App() {
   const [loginError, setLoginError] = useState('')
   const [ticketsLoading, setTicketsLoading] = useState(false)
   const [ticketsError, setTicketsError] = useState('')
+
+  const [createLoading, setCreateLoading] = useState(false)
+  const [createError, setCreateError] = useState('')
+  const [createSuccess, setCreateSuccess] = useState('')
 
   async function handleLogin(email, password) {
     setLoginLoading(true)
@@ -42,6 +47,29 @@ function App() {
     setTickets([])
     setSearch('')
     setTicketsError('')
+  }
+
+  async function handleCreateTicket(ticketData) {
+    setCreateLoading(true)
+    setCreateError('')
+    setCreateSuccess('')
+
+    try {
+      const newTicket = await createCustomerTicket(ticketData, token)
+
+      setTickets((currentTickets) => [
+        newTicket,
+        ...currentTickets,
+      ])
+
+      setCreateSuccess('Ticket created successfully!')
+      return true
+    } catch (error) {
+      setCreateError(error.message)
+      return false
+    } finally {
+      setCreateLoading(false)
+    }
   }
 
   useEffect(() => {
@@ -159,6 +187,13 @@ function App() {
           />
         </section>
 
+        <CreateTicketForm
+          onCreate={handleCreateTicket}
+          loading={createLoading}
+          error={createError}
+          success={createSuccess}
+        />
+
         <section className="tickets-section">
           <div className="section-heading">
             <div>
@@ -179,5 +214,7 @@ function App() {
     </div>
   )
 }
+
+
 
 export default App

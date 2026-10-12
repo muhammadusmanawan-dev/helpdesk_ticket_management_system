@@ -1,4 +1,38 @@
+
 const API_BASE_URL = 'http://127.0.0.1:8000'
+
+function normalizeTicket(ticket) {
+    return {
+        ...ticket,
+        priority: ticket.priority
+            ? ticket.priority.charAt(0).toUpperCase() +
+            ticket.priority.slice(1)
+            : 'Low',
+
+        status: ticket.status
+            ? ticket.status
+                .split('_')
+                .map((word) => word.charAt(0).toUpperCase() + word.slice(1))
+                .join(' ')
+            : 'Open',
+
+        customer: 'Customer',
+    }
+}
+
+async function getErrorMessage(response) {
+    try {
+        const data = await response.json()
+
+        if (typeof data.detail === 'string') {
+            return data.detail
+        }
+
+        return JSON.stringify(data.detail ?? data)
+    } catch {
+        return `Request failed: ${response.status}`
+    }
+}
 
 export async function getCustomerTickets(token) {
     const response = await fetch(
@@ -13,22 +47,36 @@ export async function getCustomerTickets(token) {
     )
 
     if (!response.ok) {
-        throw new Error(`Failed to fetch tickets: ${response.status}`)
+        throw new Error(
+            `Failed to fetch tickets: ${response.status} - ${await getErrorMessage(response)
+            }`
+        )
     }
 
     const data = await response.json()
 
-    return data.items.map((ticket) => ({
-        ...ticket,
-        priority:
-            ticket.priority.charAt(0).toUpperCase() +
-            ticket.priority.slice(1),
+    return data.items.map(normalizeTicket)
+}
 
-        status: ticket.status
-            .split('_')
-            .map((word) => word.charAt(0).toUpperCase() + word.slice(1))
-            .join(' '),
+export async function createCustomerTicket(ticketData, token) {
+    const response = await fetch(`${API_BASE_URL}/tickets/`, {
+        method: 'POST',
+        headers: {
+            Accept: 'application/json',
+            'Content-Type': 'application/json',
+            Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify(ticketData),
+    })
 
-        customer: 'Customer',
-    }))
+    if (!response.ok) {
+        throw new Error(
+            `Failed to create ticket: ${response.status} - ${await getErrorMessage(response)
+            }`
+        )
+    }
+
+    const data = await response.json()
+
+    return normalizeTicket(data)
 }
