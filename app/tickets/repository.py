@@ -13,7 +13,7 @@ class TicketRepository:
 
         session.add(ticket)
 
-        await session.commit()
+        await session.flush()
         await session.refresh(ticket)
 
         return ticket
@@ -81,7 +81,7 @@ class TicketRepository:
     async def update_ticket_status(session: AsyncSession, ticket:Ticket, status)-> Ticket:
         ticket.status=status
 
-        await session.commit()
+        await session.flush()
         await session.refresh(ticket)
 
         return ticket
@@ -104,7 +104,7 @@ class TicketRepository:
     async def assign_ticket(session: AsyncSession, ticket: Ticket, agent_id: UUID) -> Ticket:
         ticket.assigned_agent_id = agent_id
 
-        await session.commit()
+        await session.flush()
         await session.refresh(ticket)
 
         return ticket

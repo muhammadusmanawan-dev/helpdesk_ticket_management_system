@@ -1,9 +1,10 @@
 from pathlib import Path
-
 from sqlalchemy import select
-
 from app.core.database import async_session_maker
 from app.tickets.models import Ticket
+from app.core.database import async_session_maker
+from app.webhooks.service import WebhookService
+
 
 
 SUMMARY_DIR = Path("ticket_summaries")
@@ -34,4 +35,16 @@ async def process_new_ticket(ticket_id: int):
 
         print(
             f"Background task: summary created for ticket {ticket.id}"
+        )
+
+
+async def process_ticket_webhook(
+    event: str,
+    payload: dict,
+):
+    async with async_session_maker() as session:
+        await WebhookService.send_webhook(
+            session=session,
+            event=event,
+            payload=payload,
         )
