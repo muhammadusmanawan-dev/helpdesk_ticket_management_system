@@ -124,3 +124,28 @@ export async function createTicketComment(ticketId, content, token) {
 
     return response.json()
 }
+
+export async function updateCustomerTicket(ticketId, ticketData, token) {
+    const response = await fetch(
+        `${API_BASE_URL}/tickets/${ticketId}`,
+        {
+            method: 'PATCH',
+            headers: {
+                Accept: 'application/json',
+                'Content-Type': 'application/json',
+                Authorization: `Bearer ${token}`,
+            },
+            body: JSON.stringify(ticketData),
+        }
+    )
+
+    if (!response.ok) {
+        throw new Error(
+            `Failed to update ticket: ${response.status} - ${await getErrorMessage(response)}`
+        )
+    }
+
+    const data = await response.json()
+
+    return normalizeTicket(data)
+}

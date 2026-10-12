@@ -9,7 +9,7 @@ import CreateTicketForm from './components/organisms/CreateTicketForm'
 import TicketDetails from './components/organisms/TicketDetails'
 
 import { loginUser, getAccessToken, logoutUser } from './services/authService'
-import { getCustomerTickets, createCustomerTicket } from './services/ticketService'
+import { getCustomerTickets, createCustomerTicket, updateCustomerTicket } from './services/ticketService'
 
 import './App.css'
 
@@ -72,6 +72,26 @@ function App() {
     } finally {
       setCreateLoading(false)
     }
+  }
+
+  async function handleUpdateTicket(ticketId, ticketData) {
+    const updatedTicket = await updateCustomerTicket(
+      ticketId,
+      ticketData,
+      token
+    )
+
+    setTickets((currentTickets) =>
+      currentTickets.map((ticket) =>
+        ticket.id === updatedTicket.id
+          ? updatedTicket
+          : ticket
+      )
+    )
+
+    setSelectedTicket(updatedTicket)
+
+    return updatedTicket
   }
 
   useEffect(() => {
@@ -154,6 +174,7 @@ function App() {
             ticket={selectedTicket}
             token={token}
             onBack={() => setSelectedTicket(null)}
+            onTicketUpdated={handleUpdateTicket}
           />
         ) : (
           <>
