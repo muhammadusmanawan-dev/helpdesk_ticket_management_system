@@ -1,6 +1,24 @@
 
 const API_BASE_URL = 'http://127.0.0.1:8000'
 
+export async function getCurrentUser(token) {
+    const response = await fetch(`${API_BASE_URL}/users/me`, {
+        method: 'GET',
+        headers: {
+            Accept: 'application/json',
+            Authorization: `Bearer ${token}`,
+        },
+    })
+
+    if (!response.ok) {
+        throw new Error(
+            `Failed to fetch current user: ${response.status}`
+        )
+    }
+
+    return response.json()
+}
+
 export async function loginUser(email, password) {
     const formData = new URLSearchParams()
 

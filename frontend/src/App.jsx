@@ -8,7 +8,7 @@ import TicketTable from './components/organisms/TicketTable'
 import CreateTicketForm from './components/organisms/CreateTicketForm'
 import TicketDetails from './components/organisms/TicketDetails'
 
-import { loginUser, getAccessToken, logoutUser } from './services/authService'
+import { loginUser, getAccessToken, getCurrentUser, logoutUser } from './services/authService'
 import { getCustomerTickets, createCustomerTicket, updateCustomerTicket } from './services/ticketService'
 
 import './App.css'
@@ -28,6 +28,10 @@ function App() {
   const [createError, setCreateError] = useState('')
   const [createSuccess, setCreateSuccess] = useState('')
 
+  const [currentUser, setCurrentUser] = useState(null)
+  const [userLoading, setUserLoading] = useState(true)
+  const [userError, setUserError] = useState('')
+
   async function handleLogin(email, password) {
     setLoginLoading(true)
     setLoginError('')
@@ -45,6 +49,8 @@ function App() {
   function handleLogout() {
     logoutUser()
     setToken(null)
+    setCurrentUser(null)
+    setUserError('')
     setTickets([])
     setSearch('')
     setTicketsError('')
@@ -95,7 +101,54 @@ function App() {
   }
 
   useEffect(() => {
-    if (!token) return
+    if (!token) {
+      setCurrentUser(null)
+      setUserLoading(false)
+      setUserError('')
+      return
+    }
+
+    let cancelled = false
+
+    async function loadCurrentUser() {
+      setUserLoading(true)
+      setUserError('')
+
+      try {
+        const user = await getCurrentUser(token)
+
+        if (!cancelled) {
+          setCurrentUser(user)
+        }
+      } catch (error) {
+        if (!cancelled) {
+          setUserError(error.message)
+          setCurrentUser(null)
+
+          if (error.message.includes('401')) {
+            logoutUser()
+            setToken(null)
+          }
+        }
+      } finally {
+        if (!cancelled) {
+          setUserLoading(false)
+        }
+      }
+    }
+
+    loadCurrentUser()
+
+    return () => {
+      cancelled = true
+    }
+  }, [token])
+
+  useEffect(() => {
+    if (!token || currentUser?.role !== 'customer') {
+      setTicketsLoading(false)
+      return
+    }
 
     let cancelled = false
 
@@ -130,7 +183,7 @@ function App() {
     return () => {
       cancelled = true
     }
-  }, [token])
+  }, [token, currentUser?.role])
 
   const filteredTickets = tickets.filter((ticket) =>
     ticket.title.toLowerCase().includes(search.toLowerCase())
@@ -146,6 +199,31 @@ function App() {
     )
   }
 
+
+  if (userLoading) {
+    return <p>Loading user...</p>
+  }
+
+  if (userError || !currentUser) {
+    return (
+      <div className="app-layout">
+        <main className="main-content">
+          <p className="api-error">
+            {userError || 'Could not load user information.'}
+          </p>
+
+          <button
+            className="logout-button"
+            type="button"
+            onClick={handleLogout}
+          >
+            Log out
+          </button>
+        </main>
+      </div>
+    )
+  }
+
   return (
     <div className="app-layout">
       <Sidebar />
@@ -158,7 +236,7 @@ function App() {
           </div>
 
           <div className="topbar-user">
-            <span>User</span>
+            <span>{currentUser.email}</span>
             <button
               className="logout-button"
               type="button"
@@ -192,58 +270,92 @@ function App() {
               </p>
             )}
 
-            <section className="stats-grid">
-              <StatCard
-                title="Total tickets"
-                value={tickets.length}
-                description="Tickets loaded from backend"
-              />
+            {currentUser.role === 'customer' ? (
+              <>
+                <section className="stats-grid">
+                  <StatCard
+                    title="Total tickets"
+                    value={tickets.length}
+                    description="Tickets loaded from backend"
+                  />
 
-              <StatCard
-                title="Open"
-                value={tickets.filter((ticket) => ticket.status === 'Open').length}
-                description="Waiting for action"
-              />
+                  <StatCard
+                    title="Open"
+                    value={
+                      tickets.filter(
+                        (ticket) => ticket.status === 'Open'
+                      ).length
+                    }
+                    description="Waiting for action"
+                  />
 
-              <StatCard
-                title="In progress"
-                value={tickets.filter((ticket) => ticket.status === 'In Progress').length}
-                description="Currently being handled"
-              />
+                  <StatCard
+                    title="In progress"
+                    value={
+                      tickets.filter(
+                        (ticket) => ticket.status === 'In Progress'
+                      ).length
+                    }
+                    description="Currently being handled"
+                  />
 
-              <StatCard
-                title="Resolved"
-                value={tickets.filter((ticket) => ticket.status === 'Resolved').length}
-                description="Completed tickets"
-              />
-            </section>
+                  <StatCard
+                    title="Resolved"
+                    value={
+                      tickets.filter(
+                        (ticket) => ticket.status === 'Resolved'
+                      ).length
+                    }
+                    description="Completed tickets"
+                  />
+                </section>
 
-            <CreateTicketForm
-              onCreate={handleCreateTicket}
-              loading={createLoading}
-              error={createError}
-              success={createSuccess}
-            />
-
-            <section className="tickets-section">
-              <div className="section-heading">
-                <div>
-                  <h2>Recent tickets</h2>
-                  <p>Review and search support requests.</p>
-                </div>
-
-                <SearchBar value={search} onChange={setSearch} />
-              </div>
-
-              {ticketsLoading ? (
-                <p>Loading tickets...</p>
-              ) : (
-                <TicketTable
-                  tickets={filteredTickets}
-                  onViewDetails={setSelectedTicket}
+                <CreateTicketForm
+                  onCreate={handleCreateTicket}
+                  loading={createLoading}
+                  error={createError}
+                  success={createSuccess}
                 />
-              )}
-            </section>
+
+                <section className="tickets-section">
+                  <div className="section-heading">
+                    <div>
+                      <h2>Recent tickets</h2>
+                      <p>Review and search support requests.</p>
+                    </div>
+
+                    <SearchBar
+                      value={search}
+                      onChange={setSearch}
+                    />
+                  </div>
+
+                  {ticketsLoading ? (
+                    <p>Loading tickets...</p>
+                  ) : (
+                    <TicketTable
+                      tickets={filteredTickets}
+                      onViewDetails={setSelectedTicket}
+                    />
+                  )}
+                </section>
+              </>
+            ) : (
+              <section className="welcome-section">
+                <div>
+                  <p className="eyebrow">YOUR ACCOUNT</p>
+                  <h2>Welcome back!</h2>
+                  <p>
+                    Logged in as {currentUser.role}.
+                  </p>
+                  <p>
+                    The customer dashboard is available only to customer
+                    accounts. Agent and admin dashboards can be added using
+                    their existing backend permissions and routes.
+                  </p>
+                </div>
+              </section>
+            )}
           </>
         )}
       </main>
