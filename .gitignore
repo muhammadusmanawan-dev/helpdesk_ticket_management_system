@@ -8,4 +8,13 @@ htmlcov/
 .DS_Store
 helpdesk.db
 uploads/
-ticket_summaries/
+
+node_modules/
+frontend/node_modules/
+frontend/dist/
+frontend/dist-ssr/
+frontend/.env
+frontend/.g
+frontend/.env.*
+!frontend/.env.example
+quit
