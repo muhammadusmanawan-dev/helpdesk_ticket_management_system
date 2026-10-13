@@ -102,9 +102,6 @@ function App() {
 
   useEffect(() => {
     if (!token) {
-      setCurrentUser(null)
-      setUserLoading(false)
-      setUserError('')
       return
     }
 
@@ -146,7 +143,6 @@ function App() {
 
   useEffect(() => {
     if (!token || currentUser?.role !== 'customer') {
-      setTicketsLoading(false)
       return
     }
 

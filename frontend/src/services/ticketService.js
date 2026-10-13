@@ -83,7 +83,7 @@ export async function createCustomerTicket(ticketData, token) {
 
 export async function getTicketComments(ticketId, token) {
     const response = await fetch(
-        `${API_BASE_URL} /tickets/${ticketId}/comments`,
+        `${API_BASE_URL}/tickets/${ticketId}/comments`,
         {
             method: 'GET',
             headers: {

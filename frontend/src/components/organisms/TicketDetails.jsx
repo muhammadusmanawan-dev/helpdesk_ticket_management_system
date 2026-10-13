@@ -1,9 +1,9 @@
+
 import { useEffect, useState } from 'react'
 import {
     getTicketComments,
     createTicketComment,
 } from '../../services/ticketService'
-
 
 function TicketDetails({ ticket, token, onBack, onTicketUpdated }) {
     const [comments, setComments] = useState([])
@@ -15,8 +15,12 @@ function TicketDetails({ ticket, token, onBack, onTicketUpdated }) {
 
     const [isEditing, setIsEditing] = useState(false)
     const [editTitle, setEditTitle] = useState(ticket.title)
-    const [editDescription, setEditDescription] = useState(ticket.description)
-    const [editPriority, setEditPriority] = useState(ticket.priority.toLowerCase())
+    const [editDescription, setEditDescription] = useState(
+        ticket.description ?? ''
+    )
+    const [editPriority, setEditPriority] = useState(
+        ticket.priority.toLowerCase()
+    )
     const [saving, setSaving] = useState(false)
     const [editError, setEditError] = useState('')
     const [editSuccess, setEditSuccess] = useState('')
@@ -33,7 +37,7 @@ function TicketDetails({ ticket, token, onBack, onTicketUpdated }) {
                 const data = await getTicketComments(ticket.id, token)
 
                 if (!cancelled) {
-                    setComments(data)
+                    setComments(Array.isArray(data) ? data : [])
                 }
             } catch (error) {
                 if (!cancelled) {
@@ -58,7 +62,9 @@ function TicketDetails({ ticket, token, onBack, onTicketUpdated }) {
 
         const trimmedContent = content.trim()
 
-        if (!trimmedContent) return
+        if (!trimmedContent) {
+            return
+        }
 
         setSubmitting(true)
         setSubmitError('')
@@ -84,7 +90,9 @@ function TicketDetails({ ticket, token, onBack, onTicketUpdated }) {
     }
 
     function formatDate(date) {
-        if (!date) return 'Not available'
+        if (!date) {
+            return 'Not available'
+        }
 
         return new Date(date).toLocaleString()
     }
@@ -131,7 +139,6 @@ function TicketDetails({ ticket, token, onBack, onTicketUpdated }) {
                 </span>
             </div>
 
-
             <div className="ticket-information">
                 <div className="ticket-information-heading">
                     <h3>Ticket information</h3>
@@ -141,8 +148,12 @@ function TicketDetails({ ticket, token, onBack, onTicketUpdated }) {
                             type="button"
                             onClick={() => {
                                 setEditTitle(ticket.title)
-                                setEditDescription(ticket.description)
-                                setEditPriority(ticket.priority.toLowerCase())
+                                setEditDescription(
+                                    ticket.description ?? ''
+                                )
+                                setEditPriority(
+                                    ticket.priority.toLowerCase()
+                                )
                                 setEditError('')
                                 setEditSuccess('')
                                 setIsEditing(true)
@@ -173,7 +184,9 @@ function TicketDetails({ ticket, token, onBack, onTicketUpdated }) {
                             required
                         />
 
-                        <label htmlFor="edit-description">Description</label>
+                        <label htmlFor="edit-description">
+                            Description
+                        </label>
                         <textarea
                             id="edit-description"
                             value={editDescription}
@@ -203,7 +216,9 @@ function TicketDetails({ ticket, token, onBack, onTicketUpdated }) {
 
                         <div className="edit-ticket-actions">
                             <button type="submit" disabled={saving}>
-                                {saving ? 'Saving...' : 'Save Changes'}
+                                {saving
+                                    ? 'Saving...'
+                                    : 'Save Changes'}
                             </button>
 
                             <button
@@ -220,10 +235,14 @@ function TicketDetails({ ticket, token, onBack, onTicketUpdated }) {
                     </form>
                 ) : (
                     <>
-                        <p><strong>Description:</strong></p>
+                        <p>
+                            <strong>Description:</strong>
+                        </p>
                         <p>{ticket.description}</p>
 
-                        <p><strong>Status:</strong> {ticket.status}</p>
+                        <p>
+                            <strong>Status:</strong> {ticket.status}
+                        </p>
 
                         <p>
                             <strong>Created:</strong>{' '}
@@ -236,6 +255,73 @@ function TicketDetails({ ticket, token, onBack, onTicketUpdated }) {
                         </p>
                     </>
                 )}
+            </div>
+
+            <div className="ticket-comments">
+                <h3>Comments and conversation</h3>
+
+                {commentsLoading && <p>Loading comments...</p>}
+
+                {commentsError && (
+                    <p className="api-error">
+                        Could not load comments: {commentsError}
+                    </p>
+                )}
+
+                {!commentsLoading &&
+                    !commentsError &&
+                    comments.length === 0 && (
+                        <p>
+                            No comments yet. Start the conversation.
+                        </p>
+                    )}
+
+                {comments.map((comment) => (
+                    <article
+                        className="comment-card"
+                        key={comment.id}
+                    >
+                        <p>{comment.content}</p>
+
+                        <small>
+                            {formatDate(comment.created_at)}
+                        </small>
+                    </article>
+                ))}
+
+                <form
+                    className="comment-form"
+                    onSubmit={handleSubmit}
+                >
+                    <label htmlFor="new-comment">
+                        Add a comment
+                    </label>
+
+                    <textarea
+                        id="new-comment"
+                        value={content}
+                        onChange={(event) =>
+                            setContent(event.target.value)
+                        }
+                        placeholder="Write your message..."
+                        rows={3}
+                        maxLength={5000}
+                        required
+                    />
+
+                    {submitError && (
+                        <p className="api-error">{submitError}</p>
+                    )}
+
+                    <button
+                        type="submit"
+                        disabled={submitting || !content.trim()}
+                    >
+                        {submitting
+                            ? 'Sending...'
+                            : 'Send comment'}
+                    </button>
+                </form>
             </div>
         </section>
     )
