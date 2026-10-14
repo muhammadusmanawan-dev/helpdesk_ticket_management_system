@@ -12,6 +12,10 @@ import TicketDetails from './components/organisms/TicketDetails'
 import { loginUser, getAccessToken, getCurrentUser, logoutUser } from './services/authService'
 import { getCustomerTickets, getAssignedTickets, createCustomerTicket, updateCustomerTicket, updateAssignedTicketStatus } from './services/ticketService'
 
+import AdminDashboard from './pages/admin/AdminDashboard'
+import AdminTickets from './pages/admin/AdminTickets'
+import AdminAnalytics from './pages/admin/AdminAnalytics'
+
 import './App.css'
 
 function App() {
@@ -19,6 +23,7 @@ function App() {
 
   const [token, setToken] = useState(() => getAccessToken())
   const [search, setSearch] = useState('')
+  const [activeAdminPage, setActiveAdminPage] = useState('Dashboard')
 
   const [loginLoading, setLoginLoading] = useState(false)
   const [loginError, setLoginError] = useState('')
@@ -172,7 +177,6 @@ function App() {
   // Load logged-in user's information
   useEffect(() => {
     if (!token) {
-      setUserLoading(false)
       return
     }
 
@@ -260,7 +264,11 @@ function App() {
 
   return (
     <div className="app-layout">
-      <Sidebar />
+      <Sidebar
+        currentUser={currentUser}
+        activePage={activeAdminPage}
+        onNavigate={setActiveAdminPage}
+      />
 
       <main className="main-content">
         <header className="topbar">
@@ -444,17 +452,13 @@ function App() {
                   )}
                 </section>
               </>
+            ) : activeAdminPage === 'Tickets' ? (
+              <AdminTickets
+                token={token}
+                onViewDetails={setSelectedTicket}
+              />
             ) : (
-              <section className="welcome-section">
-                <div>
-                  <p className="eyebrow">ADMIN WORKSPACE</p>
-                  <h2>Welcome back!</h2>
-                  <p>
-                    Logged in as admin. The admin dashboard can be
-                    connected to the existing admin backend routes next.
-                  </p>
-                </div>
-              </section>
+              <AdminDashboard token={token} />
             )}
           </>
         )}

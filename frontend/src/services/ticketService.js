@@ -194,3 +194,147 @@ export async function updateAssignedTicketStatus(ticketId, status, token) {
 
     return normalizeTicket(await response.json())
 }
+
+
+export async function getAdminDashboardSummary(token) {
+    const response = await fetch(
+        `${API_BASE_URL}/tickets/admin/dashboard-summary`,
+        {
+            method: 'GET',
+            headers: {
+                Accept: 'application/json',
+                Authorization: `Bearer ${token}`,
+            },
+        }
+    )
+
+    if (!response.ok) {
+        throw new Error(
+            `Failed to fetch admin dashboard: ${response.status} - ${await getErrorMessage(response)}`
+        )
+    }
+
+    return response.json()
+}
+
+export async function getAdminTickets(token) {
+    const response = await fetch(
+        `${API_BASE_URL}/tickets/admin/all`,
+        {
+            method: 'GET',
+            headers: {
+                Accept: 'application/json',
+                Authorization: `Bearer ${token}`,
+            },
+        }
+    )
+
+    if (!response.ok) {
+        throw new Error(
+            `Failed to fetch admin tickets: ${response.status} - ${await getErrorMessage(response)}`
+        )
+    }
+
+    const data = await response.json()
+    const tickets = Array.isArray(data) ? data : data.items ?? []
+    return tickets.map(normalizeTicket)
+}
+
+
+export async function getAdminAgents(token) {
+    const response = await fetch(`${API_BASE_URL}/users/admin/agents`, {
+        headers: {
+            Accept: 'application/json',
+            Authorization: `Bearer ${token}`,
+        },
+    })
+
+    if (!response.ok) {
+        throw new Error(
+            `Failed to fetch agents: ${response.status} - ${await getErrorMessage(response)}`
+        )
+    }
+
+    const data = await response.json()
+    return Array.isArray(data) ? data : data.items ?? []
+}
+
+export async function assignTicketToAgent(ticketId, agentId, token) {
+    const response = await fetch(
+        `${API_BASE_URL}/tickets/${ticketId}/assign/${agentId}`,
+        {
+            method: 'PATCH',
+            headers: {
+                Accept: 'application/json',
+                Authorization: `Bearer ${token}`,
+            },
+        }
+    )
+
+    if (!response.ok) {
+        throw new Error(
+            `Failed to assign ticket: ${response.status} - ${await getErrorMessage(response)}`
+        )
+    }
+
+    return response.json()
+}
+
+export async function deleteAdminTicket(ticketId, token) {
+    const response = await fetch(
+        `${API_BASE_URL}/tickets/admin/${ticketId}`,
+        {
+            method: 'DELETE',
+            headers: {
+                Accept: 'application/json',
+                Authorization: `Bearer ${token}`,
+            },
+        }
+    )
+
+    if (!response.ok) {
+        throw new Error(
+            `Failed to delete ticket: ${response.status} - ${await getErrorMessage(response)}`
+        )
+    }
+}
+
+export async function getAdminAgentPerformance(token) {
+    const response = await fetch(
+        `${API_BASE_URL}/tickets/admin/agent-performance`,
+        {
+            headers: {
+                Accept: 'application/json',
+                Authorization: `Bearer ${token}`,
+            },
+        }
+    )
+
+    if (!response.ok) {
+        throw new Error(
+            `Failed to fetch agent performance: ${response.status} - ${await getErrorMessage(response)}`
+        )
+    }
+
+    return response.json()
+}
+
+export async function getAdminTrends(token) {
+    const response = await fetch(
+        `${API_BASE_URL}/tickets/admin/trends`,
+        {
+            headers: {
+                Accept: 'application/json',
+                Authorization: `Bearer ${token}`,
+            },
+        }
+    )
+
+    if (!response.ok) {
+        throw new Error(
+            `Failed to fetch ticket trends: ${response.status} - ${await getErrorMessage(response)}`
+        )
+    }
+
+    return response.json()
+}
