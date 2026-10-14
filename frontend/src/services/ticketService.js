@@ -1,4 +1,3 @@
-
 const API_BASE_URL = 'http://127.0.0.1:8000'
 
 function normalizeTicket(ticket) {
@@ -83,7 +82,7 @@ export async function createCustomerTicket(ticketData, token) {
 
 export async function getTicketComments(ticketId, token) {
     const response = await fetch(
-        `${API_BASE_URL} /tickets/${ticketId}/comments`,
+        `${API_BASE_URL}/tickets/${ticketId}/comments`,
         {
             method: 'GET',
             headers: {
@@ -148,4 +147,50 @@ export async function updateCustomerTicket(ticketId, ticketData, token) {
     const data = await response.json()
 
     return normalizeTicket(data)
+}
+
+export async function getAssignedTickets(token) {
+    const response = await fetch(
+        `${API_BASE_URL}/tickets/assigned`,
+        {
+            method: 'GET',
+            headers: {
+                Accept: 'application/json',
+                Authorization: `Bearer ${token}`,
+            },
+        }
+    )
+
+    if (!response.ok) {
+        throw new Error(
+            `Failed to fetch assigned tickets: ${response.status} - ${await getErrorMessage(response)}`
+        )
+    }
+
+    const data = await response.json()
+
+    return data.map(normalizeTicket)
+}
+
+export async function updateAssignedTicketStatus(ticketId, status, token) {
+    const response = await fetch(
+        `${API_BASE_URL}/tickets/${ticketId}/status`,
+        {
+            method: 'PATCH',
+            headers: {
+                Accept: 'application/json',
+                'Content-Type': 'application/json',
+                Authorization: `Bearer ${token}`,
+            },
+            body: JSON.stringify({ status }),
+        }
+    )
+
+    if (!response.ok) {
+        throw new Error(
+            `Failed to update ticket status: ${response.status} - ${await getErrorMessage(response)}`
+        )
+    }
+
+    return normalizeTicket(await response.json())
 }

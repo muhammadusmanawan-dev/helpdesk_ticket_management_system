@@ -14,6 +14,12 @@ from fastapi import BackgroundTasks
 from app.common.background_tasks import process_new_ticket, process_ticket_webhook
 from app.webhooks.events import EVENT_PAYLOAD_BUILDERS, WebhookEvent
 
+from app.tickets.schemas import (
+    TicketDashboardSummary,
+    AgentPerformance,
+    DailyTicketTrend,
+)
+
 router = APIRouter()
 
 @router.post("/", response_model=TicketRead, status_code=status.HTTP_201_CREATED)
@@ -61,6 +67,57 @@ async def get_my_assigned_tickets(
         session=session,
         agent_id=user.id,
     )
+
+@router.get("/admin/all", response_model=list[TicketRead])
+async def get_all_tickets_for_admin(
+    session: SessionDep,
+    user: User = Depends(require_role("admin")),
+):
+    return await TicketService.get_admin_tickets(session)
+
+
+@router.get("/admin/dashboard-summary", response_model=TicketDashboardSummary)
+async def get_admin_dashboard_summary(
+    session: SessionDep,
+    user: User = Depends(require_role("admin")),
+):
+    return await TicketService.get_dashboard_summary(session)
+
+
+@router.get("/admin/agent-performance",response_model=list[AgentPerformance])
+async def get_admin_agent_performance(
+    session: SessionDep,
+    user: User = Depends(require_role("admin")),
+):
+    return await TicketService.get_agent_performance(session)
+
+
+@router.get("/admin/trends",response_model=list[DailyTicketTrend])
+async def get_admin_ticket_trends(
+    session: SessionDep,
+    user: User = Depends(require_role("admin")),
+):
+    return await TicketService.get_ticket_trends(session)
+
+
+@router.delete("/admin/{ticket_id}", status_code=status.HTTP_204_NO_CONTENT)
+async def delete_ticket_for_admin(
+    ticket_id: int,
+    session: SessionDep,
+    user: User = Depends(require_role("admin")),
+):
+    deleted = await TicketService.delete_admin_ticket(
+        session=session,
+        ticket_id=ticket_id,
+    )
+
+    if not deleted:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Ticket not found",
+        )
+
+    return Response(status_code=status.HTTP_204_NO_CONTENT)
 
 @router.get("/assigned/{agent_id}", response_model=list[TicketRead])
 async def get_assigned_tickets_by_id(

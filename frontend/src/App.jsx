@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react'
+import { useQuery, useQueryClient } from '@tanstack/react-query'
 
 import Sidebar from './components/organisms/Sidebar'
 import LoginForm from './components/organisms/LoginForm'
@@ -9,19 +10,18 @@ import CreateTicketForm from './components/organisms/CreateTicketForm'
 import TicketDetails from './components/organisms/TicketDetails'
 
 import { loginUser, getAccessToken, getCurrentUser, logoutUser } from './services/authService'
-import { getCustomerTickets, createCustomerTicket, updateCustomerTicket } from './services/ticketService'
+import { getCustomerTickets, getAssignedTickets, createCustomerTicket, updateCustomerTicket, updateAssignedTicketStatus } from './services/ticketService'
 
 import './App.css'
 
 function App() {
+  const queryClient = useQueryClient()
+
   const [token, setToken] = useState(() => getAccessToken())
-  const [tickets, setTickets] = useState([])
   const [search, setSearch] = useState('')
 
   const [loginLoading, setLoginLoading] = useState(false)
   const [loginError, setLoginError] = useState('')
-  const [ticketsLoading, setTicketsLoading] = useState(false)
-  const [ticketsError, setTicketsError] = useState('')
   const [selectedTicket, setSelectedTicket] = useState(null)
 
   const [createLoading, setCreateLoading] = useState(false)
@@ -32,43 +32,98 @@ function App() {
   const [userLoading, setUserLoading] = useState(true)
   const [userError, setUserError] = useState('')
 
+  // Customer: Retrieving Customer tickets
+  const {
+    data: tickets = [],
+    isLoading: ticketsLoading,
+    error: ticketsQueryError,
+  } = useQuery({
+    queryKey: ['customerTickets', token],
+    queryFn: async () => {
+      try {
+        return await getCustomerTickets(token)
+      } catch (error) {
+        if (error.message.includes('401')) {
+          logoutUser()
+          setToken(null)
+          setCurrentUser(null)
+          setSelectedTicket(null)
+        }
+
+        throw error
+      }
+    },
+    enabled: Boolean(token && currentUser?.role === 'customer'),
+  })
+
+  const ticketsError = ticketsQueryError?.message ?? ''
+
+  //Agent: Retrieving Tickets assigned to the logged-in agent
+  const {
+    data: assignedTickets = [],
+    isLoading: assignedTicketsLoading,
+    error: assignedTicketsQueryError,
+  } = useQuery({
+    queryKey: ['assignedTickets', token],
+    queryFn: () => getAssignedTickets(token),
+    enabled: Boolean(token && currentUser?.role === 'agent'),
+  })
+
+  const assignedTicketsError =
+    assignedTicketsQueryError?.message ?? ''
+
+  // Login
   async function handleLogin(email, password) {
     setLoginLoading(true)
     setLoginError('')
+    setUserError('')
+    setUserLoading(true)
+    setCurrentUser(null)
 
     try {
       const data = await loginUser(email, password)
       setToken(data.access_token)
     } catch (error) {
       setLoginError(error.message)
+      setUserLoading(false)
     } finally {
       setLoginLoading(false)
     }
   }
 
+  // Logout
   function handleLogout() {
     logoutUser()
     setToken(null)
     setCurrentUser(null)
+    setUserLoading(false)
     setUserError('')
-    setTickets([])
     setSearch('')
-    setTicketsError('')
     setSelectedTicket(null)
+    setCreateError('')
+    setCreateSuccess('')
+
+    queryClient.removeQueries({
+      queryKey: ['customerTickets'],
+    })
+
+    queryClient.removeQueries({
+      queryKey: ['assignedTickets'],
+    })
   }
 
+  // Customer creates a ticket
   async function handleCreateTicket(ticketData) {
     setCreateLoading(true)
     setCreateError('')
     setCreateSuccess('')
 
     try {
-      const newTicket = await createCustomerTicket(ticketData, token)
+      await createCustomerTicket(ticketData, token)
 
-      setTickets((currentTickets) => [
-        newTicket,
-        ...currentTickets,
-      ])
+      await queryClient.invalidateQueries({
+        queryKey: ['customerTickets', token],
+      })
 
       setCreateSuccess('Ticket created successfully!')
       return true
@@ -80,6 +135,7 @@ function App() {
     }
   }
 
+  // Customer updates ticket information
   async function handleUpdateTicket(ticketId, ticketData) {
     const updatedTicket = await updateCustomerTicket(
       ticketId,
@@ -87,24 +143,36 @@ function App() {
       token
     )
 
-    setTickets((currentTickets) =>
-      currentTickets.map((ticket) =>
-        ticket.id === updatedTicket.id
-          ? updatedTicket
-          : ticket
-      )
-    )
+    await queryClient.invalidateQueries({
+      queryKey: ['customerTickets', token],
+    })
 
     setSelectedTicket(updatedTicket)
 
     return updatedTicket
   }
 
+  // Agent updates the status of an assigned ticket
+  async function handleStatusUpdated(ticketId, status) {
+    const updatedTicket = await updateAssignedTicketStatus(
+      ticketId,
+      status,
+      token
+    )
+
+    await queryClient.invalidateQueries({
+      queryKey: ['assignedTickets', token],
+    })
+
+    setSelectedTicket(updatedTicket)
+
+    return updatedTicket
+  }
+
+  // Load logged-in user's information
   useEffect(() => {
     if (!token) {
-      setCurrentUser(null)
       setUserLoading(false)
-      setUserError('')
       return
     }
 
@@ -144,48 +212,12 @@ function App() {
     }
   }, [token])
 
-  useEffect(() => {
-    if (!token || currentUser?.role !== 'customer') {
-      setTicketsLoading(false)
-      return
-    }
-
-    let cancelled = false
-
-    async function loadTickets() {
-      setTicketsLoading(true)
-      setTicketsError('')
-
-      try {
-        const data = await getCustomerTickets(token)
-
-        if (!cancelled) {
-          setTickets(data)
-        }
-      } catch (error) {
-        if (!cancelled) {
-          setTicketsError(error.message)
-
-          if (error.message.includes('401')) {
-            logoutUser()
-            setToken(null)
-          }
-        }
-      } finally {
-        if (!cancelled) {
-          setTicketsLoading(false)
-        }
-      }
-    }
-
-    loadTickets()
-
-    return () => {
-      cancelled = true
-    }
-  }, [token, currentUser?.role])
-
+  // Search customer and agent tickets separately
   const filteredTickets = tickets.filter((ticket) =>
+    ticket.title.toLowerCase().includes(search.toLowerCase())
+  )
+
+  const filteredAssignedTickets = assignedTickets.filter((ticket) =>
     ticket.title.toLowerCase().includes(search.toLowerCase())
   )
 
@@ -198,7 +230,6 @@ function App() {
       />
     )
   }
-
 
   if (userLoading) {
     return <p>Loading user...</p>
@@ -224,6 +255,9 @@ function App() {
     )
   }
 
+  const isCustomer = currentUser.role === 'customer'
+  const isAgent = currentUser.role === 'agent'
+
   return (
     <div className="app-layout">
       <Sidebar />
@@ -237,6 +271,7 @@ function App() {
 
           <div className="topbar-user">
             <span>{currentUser.email}</span>
+
             <button
               className="logout-button"
               type="button"
@@ -251,26 +286,44 @@ function App() {
           <TicketDetails
             ticket={selectedTicket}
             token={token}
+            currentUser={currentUser}
             onBack={() => setSelectedTicket(null)}
             onTicketUpdated={handleUpdateTicket}
+            onStatusUpdated={handleStatusUpdated}
           />
         ) : (
           <>
             <section className="welcome-section">
               <div>
-                <p className="eyebrow">TICKET WORKSPACE</p>
+                <p className="eyebrow">
+                  {isCustomer ? 'TICKET WORKSPACE' : 'AGENT WORKSPACE'}
+                </p>
+
                 <h2>Welcome back!</h2>
-                <p>Here is an overview of your support tickets.</p>
+
+                <p>
+                  {isCustomer
+                    ? 'Here is an overview of your support tickets.'
+                    : isAgent
+                      ? 'Review and manage tickets assigned to you.'
+                      : 'Welcome to the support workspace.'}
+                </p>
               </div>
             </section>
 
-            {ticketsError && (
+            {isCustomer && ticketsError && (
               <p className="api-error">
                 Could not load tickets: {ticketsError}
               </p>
             )}
 
-            {currentUser.role === 'customer' ? (
+            {isAgent && assignedTicketsError && (
+              <p className="api-error">
+                Could not load assigned tickets: {assignedTicketsError}
+              </p>
+            )}
+
+            {isCustomer ? (
               <>
                 <section className="stats-grid">
                   <StatCard
@@ -281,31 +334,25 @@ function App() {
 
                   <StatCard
                     title="Open"
-                    value={
-                      tickets.filter(
-                        (ticket) => ticket.status === 'Open'
-                      ).length
-                    }
+                    value={tickets.filter(
+                      (ticket) => ticket.status === 'Open'
+                    ).length}
                     description="Waiting for action"
                   />
 
                   <StatCard
                     title="In progress"
-                    value={
-                      tickets.filter(
-                        (ticket) => ticket.status === 'In Progress'
-                      ).length
-                    }
+                    value={tickets.filter(
+                      (ticket) => ticket.status === 'In Progress'
+                    ).length}
                     description="Currently being handled"
                   />
 
                   <StatCard
                     title="Resolved"
-                    value={
-                      tickets.filter(
-                        (ticket) => ticket.status === 'Resolved'
-                      ).length
-                    }
+                    value={tickets.filter(
+                      (ticket) => ticket.status === 'Resolved'
+                    ).length}
                     description="Completed tickets"
                   />
                 </section>
@@ -340,18 +387,71 @@ function App() {
                   )}
                 </section>
               </>
+            ) : isAgent ? (
+              <>
+                <section className="stats-grid">
+                  <StatCard
+                    title="Assigned tickets"
+                    value={assignedTickets.length}
+                    description="Tickets assigned to you"
+                  />
+
+                  <StatCard
+                    title="Open"
+                    value={assignedTickets.filter(
+                      (ticket) => ticket.status === 'Open'
+                    ).length}
+                    description="Waiting for action"
+                  />
+
+                  <StatCard
+                    title="In progress"
+                    value={assignedTickets.filter(
+                      (ticket) => ticket.status === 'In Progress'
+                    ).length}
+                    description="Currently being handled"
+                  />
+
+                  <StatCard
+                    title="Resolved"
+                    value={assignedTickets.filter(
+                      (ticket) => ticket.status === 'Resolved'
+                    ).length}
+                    description="Resolved tickets"
+                  />
+                </section>
+
+                <section className="tickets-section">
+                  <div className="section-heading">
+                    <div>
+                      <h2>My assigned tickets</h2>
+                      <p>View tickets assigned to your account.</p>
+                    </div>
+
+                    <SearchBar
+                      value={search}
+                      onChange={setSearch}
+                    />
+                  </div>
+
+                  {assignedTicketsLoading ? (
+                    <p>Loading assigned tickets...</p>
+                  ) : (
+                    <TicketTable
+                      tickets={filteredAssignedTickets}
+                      onViewDetails={setSelectedTicket}
+                    />
+                  )}
+                </section>
+              </>
             ) : (
               <section className="welcome-section">
                 <div>
-                  <p className="eyebrow">YOUR ACCOUNT</p>
+                  <p className="eyebrow">ADMIN WORKSPACE</p>
                   <h2>Welcome back!</h2>
                   <p>
-                    Logged in as {currentUser.role}.
-                  </p>
-                  <p>
-                    The customer dashboard is available only to customer
-                    accounts. Agent and admin dashboards can be added using
-                    their existing backend permissions and routes.
+                    Logged in as admin. The admin dashboard can be
+                    connected to the existing admin backend routes next.
                   </p>
                 </div>
               </section>

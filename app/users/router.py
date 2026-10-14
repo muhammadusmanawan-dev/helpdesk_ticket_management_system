@@ -6,6 +6,9 @@ from app.users.schemas import UserCreate, UserRead
 from app.core.security import auth_backend
 from app.common.permissions import require_role
 
+from app.common.dependencies import SessionDep
+from app.tickets.repository import TicketRepository
+
 router = APIRouter()
 
 router.include_router(
@@ -35,3 +38,7 @@ async def admin_test(user: User = Depends(require_role(UserRole.ADMIN)),):
         "message": "You are an admin",
         "email": user.email,
     }
+
+@router.get("/admin/agents", response_model=list[UserRead])
+async def get_admin_agents(session: SessionDep, user: User = Depends(require_role(UserRole.ADMIN))):
+    return await TicketRepository.get_all_agents(session)

@@ -47,3 +47,8 @@ class Ticket(Base):
         onupdate=func.now(),
         nullable=False,
     )
+    
+    resolved_at: Mapped[datetime | None] = mapped_column(
+    DateTime,
+    nullable=True,
+)

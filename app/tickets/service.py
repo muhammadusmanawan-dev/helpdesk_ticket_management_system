@@ -2,13 +2,16 @@ from uuid import UUID
 
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.tickets.models import Ticket
+from app.tickets.models import Ticket, TicketStatus
 from app.tickets.repository import TicketRepository
 from app.tickets.schemas import TicketCreate, TicketUpdate, TicketUpdateStatus
 from app.audit_logs.service import AuditLogService
 from app.tickets.filters import TicketFilter
 from sqlalchemy import select
 from app.notifications.service import NotificationService
+
+from datetime import datetime, timedelta
+from app.users.models import User, UserRole
 
 class TicketService:
 
@@ -136,6 +139,14 @@ class TicketService:
 
         if ticket is None:
             return None
+        
+        agent = await TicketRepository.get_agent_by_id(
+        session=session,
+        agent_id=agent_id,
+        )
+
+        if agent is None:
+            return None
 
         await TicketRepository.assign_ticket(
             session=session,
@@ -159,3 +170,120 @@ class TicketService:
 
         await session.commit()
         return ticket
+
+    @staticmethod
+    async def get_admin_tickets(session: AsyncSession):
+        return await TicketRepository.get_all_tickets(session)
+
+    @staticmethod
+    async def get_dashboard_summary(session: AsyncSession):
+        counts = await TicketRepository.get_ticket_counts(session)
+
+        tickets = await TicketRepository.get_all_tickets_for_analytics(session)
+        agents = await TicketRepository.get_all_agents(session)
+
+        return {
+            "total_tickets": len(tickets),
+            "open_tickets": counts.get("open", 0),
+            "assigned_tickets": counts.get("assigned", 0),
+            "in_progress_tickets": counts.get("in_progress", 0),
+            "resolved_tickets": counts.get("resolved", 0),
+            "closed_tickets": counts.get("closed", 0),
+            "total_agents": len(agents),
+        }
+
+    @staticmethod
+    async def get_agent_performance(session: AsyncSession):
+        agents = await TicketRepository.get_all_agents(session)
+        tickets = await TicketRepository.get_all_tickets_for_analytics(session)
+
+        performance = []
+
+        for agent in agents:
+            agent_tickets = [
+                ticket for ticket in tickets
+                if ticket.assigned_agent_id == agent.id
+            ]
+
+            resolved = [
+                ticket for ticket in agent_tickets
+                if ticket.resolved_at is not None
+            ]
+
+            durations = [
+                (ticket.resolved_at - ticket.created_at).total_seconds() / 3600
+                for ticket in resolved
+                if ticket.created_at and ticket.resolved_at
+            ]
+
+            performance.append({
+                "agent_id": agent.id,
+                "email": agent.email,
+                "assigned_tickets": len(agent_tickets),
+                "open_tickets": sum(
+                    ticket.status == TicketStatus.OPEN
+                    for ticket in agent_tickets
+                ),
+                "resolved_tickets": sum(
+                    ticket.status == TicketStatus.RESOLVED
+                    for ticket in agent_tickets
+                ),
+                "closed_tickets": sum(
+                    ticket.status == TicketStatus.CLOSED
+                    for ticket in agent_tickets
+                ),
+                "average_resolution_hours": (
+                    round(sum(durations) / len(durations), 2)
+                    if durations else None
+                ),
+            })
+
+        return performance
+
+    @staticmethod
+    async def get_ticket_trends(session: AsyncSession):
+        tickets = await TicketRepository.get_all_tickets_for_analytics(session)
+
+        today = datetime.now().date()
+        first_day = today - timedelta(days=6)
+
+        trends = []
+
+        for day_offset in range(7):
+            day = first_day + timedelta(days=day_offset)
+
+            created_count = sum(
+                ticket.created_at is not None
+                and ticket.created_at.date() == day
+                for ticket in tickets
+            )
+
+            resolved_count = sum(
+                ticket.resolved_at is not None
+                and ticket.resolved_at.date() == day
+                for ticket in tickets
+            )
+
+            trends.append({
+                "date": day.isoformat(),
+                "created": created_count,
+                "resolved": resolved_count,
+            })
+
+        return trends
+    
+    @staticmethod
+    async def delete_admin_ticket(session: AsyncSession, ticket_id: int) -> bool:
+        ticket = await TicketRepository.get_ticket(
+            session=session,
+            ticket_id=ticket_id,
+        )
+
+        if ticket is None:
+            return False
+
+        await TicketRepository.delete_ticket(
+            session=session,
+            ticket=ticket,
+        )
+        return True

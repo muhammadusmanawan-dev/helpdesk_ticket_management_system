@@ -21,6 +21,7 @@ class TicketRead(BaseModel):
     assigned_agent_id: UUID | None
     created_at: datetime
     updated_at: datetime
+    resolved_at: datetime | None = None
 
 class TicketUpdate(BaseModel):
     title: str | None = None
@@ -29,3 +30,26 @@ class TicketUpdate(BaseModel):
 
 class TicketUpdateStatus(BaseModel):
     status:TicketStatus
+
+class TicketDashboardSummary(BaseModel):
+    total_tickets: int
+    open_tickets: int
+    assigned_tickets: int
+    in_progress_tickets: int
+    resolved_tickets: int
+    closed_tickets: int
+    total_agents: int
+
+class AgentPerformance(BaseModel):
+    agent_id: UUID
+    email: str
+    assigned_tickets: int
+    open_tickets: int
+    resolved_tickets: int
+    closed_tickets: int
+    average_resolution_hours: float | None
+
+class DailyTicketTrend(BaseModel):
+    date: str
+    created: int
+    resolved: int

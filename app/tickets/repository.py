@@ -2,9 +2,14 @@ from uuid import UUID
 
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.tickets.models import Ticket
+from app.tickets.models import Ticket,TicketStatus
 from sqlalchemy import select
 from app.tickets.schemas import TicketUpdate
+
+from sqlalchemy import func
+from app.users.models import User, UserRole
+
+from datetime import datetime
 
 class TicketRepository:
 
@@ -78,8 +83,14 @@ class TicketRepository:
         return result.scalar_one_or_none()
 
     @staticmethod
-    async def update_ticket_status(session: AsyncSession, ticket:Ticket, status)-> Ticket:
-        ticket.status=status
+    async def update_ticket_status(session: AsyncSession, ticket: Ticket, status) -> Ticket:
+        if (
+            status == TicketStatus.RESOLVED
+            and ticket.status != TicketStatus.RESOLVED
+        ):
+            ticket.resolved_at = datetime.now()
+
+        ticket.status = status
 
         await session.flush()
         await session.refresh(ticket)
@@ -108,3 +119,54 @@ class TicketRepository:
         await session.refresh(ticket)
 
         return ticket
+
+    @staticmethod
+    async def get_all_tickets(session: AsyncSession):
+        result = await session.execute(
+            select(Ticket).order_by(Ticket.created_at.desc())
+        )
+        return list(result.scalars().all())
+
+    @staticmethod
+    async def get_all_agents(session: AsyncSession):
+        result = await session.execute(
+            select(User)
+            .where(User.role == UserRole.AGENT)
+            .order_by(User.email)
+        )
+        return list(result.scalars().all())
+
+    @staticmethod
+    async def get_ticket_counts(session: AsyncSession):
+        result = await session.execute(
+            select(Ticket.status, func.count(Ticket.id))
+            .group_by(Ticket.status)
+        )
+
+        return {
+            str(status.value if hasattr(status, "value") else status): count
+            for status, count in result.all()
+        }
+
+    @staticmethod
+    async def get_all_tickets_for_analytics(session: AsyncSession):
+        result = await session.execute(select(Ticket))
+        return list(result.scalars().all())
+
+    @staticmethod
+    async def delete_ticket(
+        session: AsyncSession,
+        ticket: Ticket,
+    ) -> None:
+        await session.delete(ticket)
+        await session.commit()
+
+    @staticmethod
+    async def get_agent_by_id(session: AsyncSession,agent_id: UUID) -> User | None:
+        result = await session.execute(
+            select(User).where(
+                User.id == agent_id,
+                User.role == UserRole.AGENT,
+            )
+        )
+        return result.scalar_one_or_none()

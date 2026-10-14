@@ -1,90 +1,60 @@
+
 import { useEffect, useState } from 'react'
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import {
     getTicketComments,
     createTicketComment,
 } from '../../services/ticketService'
 
+function TicketDetails({ ticket, token, currentUser, onBack, onTicketUpdated, onStatusUpdated }) {
+    const isCustomer = currentUser?.role === 'customer'
+    const isAgent = currentUser?.role === 'agent'
+    const canViewComments = isCustomer || isAgent
+    const queryClient = useQueryClient()
 
-function TicketDetails({ ticket, token, onBack, onTicketUpdated }) {
-    const [comments, setComments] = useState([])
-    const [commentsLoading, setCommentsLoading] = useState(true)
-    const [commentsError, setCommentsError] = useState('')
+    const {
+        data: comments = [],
+        isLoading: commentsLoading,
+        error: commentsQueryError,
+    } = useQuery({
+        queryKey: ['ticketComments', ticket.id, token],
+        queryFn: () => getTicketComments(ticket.id, token),
+        enabled: Boolean(token) && Boolean(ticket.id) && canViewComments,
+    })
+    const commentsError = commentsQueryError?.message ?? ''
+
     const [content, setContent] = useState('')
-    const [submitting, setSubmitting] = useState(false)
     const [submitError, setSubmitError] = useState('')
 
     const [isEditing, setIsEditing] = useState(false)
     const [editTitle, setEditTitle] = useState(ticket.title)
-    const [editDescription, setEditDescription] = useState(ticket.description)
+    const [editDescription, setEditDescription] = useState(ticket.description ?? '')
     const [editPriority, setEditPriority] = useState(ticket.priority.toLowerCase())
     const [saving, setSaving] = useState(false)
     const [editError, setEditError] = useState('')
     const [editSuccess, setEditSuccess] = useState('')
 
+    const [statusValue, setStatusValue] = useState(ticket.status.toLowerCase().replaceAll(' ', '_'))
+    const [statusSaving, setStatusSaving] = useState(false)
+    const [statusError, setStatusError] = useState('')
+    const [statusSuccess, setStatusSuccess] = useState('')
+
     useEffect(() => {
-        let cancelled = false
-
-        async function loadComments() {
-            setComments([])
-            setCommentsLoading(true)
-            setCommentsError('')
-
-            try {
-                const data = await getTicketComments(ticket.id, token)
-
-                if (!cancelled) {
-                    setComments(data)
-                }
-            } catch (error) {
-                if (!cancelled) {
-                    setCommentsError(error.message)
-                }
-            } finally {
-                if (!cancelled) {
-                    setCommentsLoading(false)
-                }
-            }
-        }
-
-        loadComments()
-
-        return () => {
-            cancelled = true
-        }
-    }, [ticket.id, token])
-
-    async function handleSubmit(event) {
-        event.preventDefault()
-
-        const trimmedContent = content.trim()
-
-        if (!trimmedContent) return
-
-        setSubmitting(true)
-        setSubmitError('')
-
-        try {
-            const newComment = await createTicketComment(
-                ticket.id,
-                trimmedContent,
-                token
-            )
-
-            setComments((currentComments) => [
-                ...currentComments,
-                newComment,
-            ])
-
-            setContent('')
-        } catch (error) {
-            setSubmitError(error.message)
-        } finally {
-            setSubmitting(false)
-        }
-    }
+        setEditTitle(ticket.title)
+        setEditDescription(ticket.description ?? '')
+        setEditPriority(ticket.priority.toLowerCase())
+        setStatusValue(ticket.status.toLowerCase().replaceAll(' ', '_'))
+        setIsEditing(false)
+        setEditError('')
+        setEditSuccess('')
+        setStatusError('')
+        setStatusSuccess('')
+    }, [ticket.id, ticket.title, ticket.description, ticket.priority, ticket.status])
 
     function formatDate(date) {
-        if (!date) return 'Not available'
+        if (!date) {
+            return 'Not available'
+        }
 
         return new Date(date).toLocaleString()
     }
@@ -112,6 +82,66 @@ function TicketDetails({ ticket, token, onBack, onTicketUpdated }) {
         }
     }
 
+    const createCommentMutation = useMutation({
+        mutationFn: ({ ticketId, content }) =>
+            createTicketComment(ticketId, content, token),
+
+        onSuccess: () => {
+            queryClient.invalidateQueries({
+                queryKey: ['ticketComments', ticket.id, token],
+            })
+
+            setContent('')
+            setSubmitError('')
+        },
+
+        onError: (error) => {
+            setSubmitError(error.message)
+        },
+    })
+
+    async function handleSubmit(event) {
+        event.preventDefault()
+
+        const trimmedContent = content.trim()
+
+        if (!trimmedContent) {
+            return
+        }
+
+        setSubmitError('')
+
+        createCommentMutation.mutate({
+            ticketId: ticket.id,
+            content: trimmedContent,
+        })
+    }
+    async function handleStatusChange(event) {
+        const newStatus = event.target.value
+
+        setStatusValue(newStatus)
+        setStatusError('')
+        setStatusSuccess('')
+
+        if (newStatus === ticket.status.toLowerCase().replaceAll(' ', '_')) {
+            return
+        }
+
+        setStatusSaving(true)
+
+        try {
+            await onStatusUpdated(ticket.id, newStatus)
+            setStatusSuccess('Ticket status updated successfully!')
+        } catch (error) {
+            setStatusValue(
+                ticket.status.toLowerCase().replaceAll(' ', '_')
+            )
+            setStatusError(error.message)
+        } finally {
+            setStatusSaving(false)
+        }
+    }
+
     return (
         <section className="ticket-details-section">
             <button type="button" onClick={onBack}>
@@ -131,18 +161,21 @@ function TicketDetails({ ticket, token, onBack, onTicketUpdated }) {
                 </span>
             </div>
 
-
             <div className="ticket-information">
                 <div className="ticket-information-heading">
                     <h3>Ticket information</h3>
 
-                    {!isEditing && (
+                    {isCustomer && !isEditing && (
                         <button
                             type="button"
                             onClick={() => {
                                 setEditTitle(ticket.title)
-                                setEditDescription(ticket.description)
-                                setEditPriority(ticket.priority.toLowerCase())
+                                setEditDescription(
+                                    ticket.description ?? ''
+                                )
+                                setEditPriority(
+                                    ticket.priority.toLowerCase()
+                                )
                                 setEditError('')
                                 setEditSuccess('')
                                 setIsEditing(true)
@@ -157,7 +190,7 @@ function TicketDetails({ ticket, token, onBack, onTicketUpdated }) {
                     <p className="success-message">{editSuccess}</p>
                 )}
 
-                {isEditing ? (
+                {isEditing && isCustomer ? (
                     <form
                         className="edit-ticket-form"
                         onSubmit={handleEditSubmit}
@@ -173,7 +206,9 @@ function TicketDetails({ ticket, token, onBack, onTicketUpdated }) {
                             required
                         />
 
-                        <label htmlFor="edit-description">Description</label>
+                        <label htmlFor="edit-description">
+                            Description
+                        </label>
                         <textarea
                             id="edit-description"
                             value={editDescription}
@@ -195,6 +230,7 @@ function TicketDetails({ ticket, token, onBack, onTicketUpdated }) {
                             <option value="low">Low</option>
                             <option value="medium">Medium</option>
                             <option value="high">High</option>
+                            <option value="urgent">Urgent</option>
                         </select>
 
                         {editError && (
@@ -220,10 +256,47 @@ function TicketDetails({ ticket, token, onBack, onTicketUpdated }) {
                     </form>
                 ) : (
                     <>
-                        <p><strong>Description:</strong></p>
+                        <p>
+                            <strong>Description:</strong>
+                        </p>
                         <p>{ticket.description}</p>
 
-                        <p><strong>Status:</strong> {ticket.status}</p>
+                        <p>
+                            <strong>Status:</strong> {ticket.status}
+                        </p>
+
+                        {isAgent && (
+                            <div className="status-update-form">
+                                <label htmlFor="ticket-status">
+                                    Update ticket status
+                                </label>
+
+                                <select
+                                    id="ticket-status"
+                                    value={statusValue}
+                                    onChange={handleStatusChange}
+                                    disabled={statusSaving}
+                                >
+                                    <option value="open">Open</option>
+                                    <option value="assigned">Assigned</option>
+                                    <option value="in_progress">In Progress</option>
+                                    <option value="resolved">Resolved</option>
+                                    <option value="closed">Closed</option>
+                                </select>
+
+                                {statusSaving && <p>Updating status...</p>}
+
+                                {statusError && (
+                                    <p className="api-error">{statusError}</p>
+                                )}
+
+                                {statusSuccess && (
+                                    <p className="success-message">
+                                        {statusSuccess}
+                                    </p>
+                                )}
+                            </div>
+                        )}
 
                         <p>
                             <strong>Created:</strong>{' '}
@@ -237,6 +310,67 @@ function TicketDetails({ ticket, token, onBack, onTicketUpdated }) {
                     </>
                 )}
             </div>
+
+            {canViewComments && (
+                <div className="ticket-comments">
+                    <h3>Comments and conversation</h3>
+
+                    {commentsLoading && <p>Loading comments...</p>}
+
+                    {commentsError && (
+                        <p className="api-error">
+                            Could not load comments: {commentsError}
+                        </p>
+                    )}
+
+                    {!commentsLoading &&
+                        !commentsError &&
+                        comments.length === 0 && (
+                            <p>No comments yet. Start the conversation.</p>
+                        )}
+
+                    {comments.map((comment) => (
+                        <article
+                            className="comment-card"
+                            key={comment.id}
+                        >
+                            <p>{comment.content}</p>
+                            <small>{formatDate(comment.created_at)}</small>
+                        </article>
+                    ))}
+
+                    <form
+                        className="comment-form"
+                        onSubmit={handleSubmit}
+                    >
+                        <label htmlFor="new-comment">Add a comment</label>
+
+                        <textarea
+                            id="new-comment"
+                            value={content}
+                            onChange={(event) =>
+                                setContent(event.target.value)
+                            }
+                            placeholder="Write your message..."
+                            rows={3}
+                            maxLength={5000}
+                            required
+                        />
+
+                        {submitError && (
+                            <p className="api-error">{submitError}</p>
+                        )}
+
+                        <button
+                            type="submit"
+                            disabled={createCommentMutation.isPending || !content.trim()}
+                        >
+                            {createCommentMutation.isPending ? 'Sending...' : 'Send comment'}
+                        </button>
+
+                    </form>
+                </div>
+            )}
         </section>
     )
 }
