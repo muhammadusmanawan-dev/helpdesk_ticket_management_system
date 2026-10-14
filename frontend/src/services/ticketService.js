@@ -216,3 +216,26 @@ export async function getAdminDashboardSummary(token) {
 
     return response.json()
 }
+
+export async function getAdminTickets(token) {
+    const response = await fetch(
+        `${API_BASE_URL}/tickets/admin/all`,
+        {
+            method: 'GET',
+            headers: {
+                Accept: 'application/json',
+                Authorization: `Bearer ${token}`,
+            },
+        }
+    )
+
+    if (!response.ok) {
+        throw new Error(
+            `Failed to fetch admin tickets: ${response.status} - ${await getErrorMessage(response)}`
+        )
+    }
+
+    const data = await response.json()
+    const tickets = Array.isArray(data) ? data : data.items ?? []
+    return tickets.map(normalizeTicket)
+}

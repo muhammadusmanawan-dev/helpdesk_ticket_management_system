@@ -13,6 +13,7 @@ import { loginUser, getAccessToken, getCurrentUser, logoutUser } from './service
 import { getCustomerTickets, getAssignedTickets, createCustomerTicket, updateCustomerTicket, updateAssignedTicketStatus } from './services/ticketService'
 
 import AdminDashboard from './pages/admin/AdminDashboard'
+import AdminTickets from './pages/admin/AdminTickets'
 
 import './App.css'
 
@@ -21,6 +22,7 @@ function App() {
 
   const [token, setToken] = useState(() => getAccessToken())
   const [search, setSearch] = useState('')
+  const [activeAdminPage, setActiveAdminPage] = useState('Dashboard')
 
   const [loginLoading, setLoginLoading] = useState(false)
   const [loginError, setLoginError] = useState('')
@@ -261,7 +263,11 @@ function App() {
 
   return (
     <div className="app-layout">
-      <Sidebar />
+      <Sidebar
+        currentUser={currentUser}
+        activePage={activeAdminPage}
+        onNavigate={setActiveAdminPage}
+      />
 
       <main className="main-content">
         <header className="topbar">
@@ -445,8 +451,13 @@ function App() {
                   )}
                 </section>
               </>
+            ) : activeAdminPage === 'Tickets' ? (
+              <AdminTickets token={token} />
             ) : (
-              <AdminDashboard token={token} />
+              <AdminTickets
+                token={token}
+                onViewDetails={setSelectedTicket}
+              />
             )}
           </>
         )}

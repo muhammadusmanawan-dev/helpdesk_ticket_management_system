@@ -1,11 +1,15 @@
-const navigationItems = [
+const adminNavigationItems = ['Dashboard', 'Tickets']
+const defaultNavigationItems = [
     'Dashboard',
     'Tickets',
     'My Tasks',
     'Notifications',
 ]
 
-function Sidebar() {
+function Sidebar({ currentUser, activePage, onNavigate }) {
+    const isAdmin = currentUser?.role === 'admin'
+    const navigationItems = isAdmin ? adminNavigationItems : defaultNavigationItems
+
     return (
         <aside className="fixed inset-y-0 left-0 z-20 flex w-[245px] flex-col border-r border-slate-200 bg-white px-[18px] py-7 max-[1000px]:w-[200px] max-[650px]:static max-[650px]:w-full max-[650px]:px-4 max-[650px]:py-4">
             <div className="mx-2 mb-[42px] flex items-center gap-[10px] max-[650px]:mb-5">
@@ -24,30 +28,36 @@ function Sidebar() {
 
             <nav className="grid gap-1.5 max-[650px]:grid-cols-2">
                 {navigationItems.map((item) => (
-                    <div
+                    <button
                         key={item}
-                        className={`cursor-pointer rounded-[9px] px-3 py-3 text-sm ${item === 'Dashboard'
+                        type="button"
+                        onClick={() => {
+                            if (isAdmin && onNavigate) {
+                                onNavigate(item)
+                            }
+                        }}
+                        className={`cursor-pointer rounded-[9px] px-3 py-3 text-left text-sm ${item === activePage
                             ? 'bg-indigo-50 font-semibold text-indigo-700'
                             : 'text-slate-600 hover:bg-slate-50'
                             }`}
                     >
                         {item}
-                    </div>
+                    </button>
                 ))}
             </nav>
 
             <div className="mt-auto flex items-center gap-[10px] border-t border-slate-200 px-[5px] pt-[18px] max-[650px]:hidden">
                 <div className="flex h-[35px] w-[35px] shrink-0 items-center justify-center rounded-full bg-indigo-50 font-bold text-indigo-700">
-                    U
+                    {(currentUser?.email?.[0] || 'U').toUpperCase()}
                 </div>
 
                 <div className="min-w-0">
-                    <strong className="block text-[13px] font-semibold text-slate-900">
-                        Demo User
+                    <strong className="block truncate text-[13px] font-semibold text-slate-900">
+                        {currentUser?.email || 'Demo User'}
                     </strong>
 
                     <small className="mt-1 block text-[11px] text-slate-400">
-                        Support workspace
+                        {currentUser?.role || 'Support workspace'}
                     </small>
                 </div>
             </div>
