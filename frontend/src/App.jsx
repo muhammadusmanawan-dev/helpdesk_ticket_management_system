@@ -14,7 +14,7 @@ import { getCustomerTickets, getAssignedTickets, createCustomerTicket, updateCus
 
 import AdminDashboard from './pages/admin/AdminDashboard'
 import AdminTickets from './pages/admin/AdminTickets'
-import AdminAnalytics from './pages/admin/AdminAnalytics'
+import AgentDashboard from './pages/agent/AgentDashboard'
 
 import './App.css'
 
@@ -221,10 +221,6 @@ function App() {
     ticket.title.toLowerCase().includes(search.toLowerCase())
   )
 
-  const filteredAssignedTickets = assignedTickets.filter((ticket) =>
-    ticket.title.toLowerCase().includes(search.toLowerCase())
-  )
-
   if (!token) {
     return (
       <LoginForm
@@ -396,62 +392,12 @@ function App() {
                 </section>
               </>
             ) : isAgent ? (
-              <>
-                <section className="stats-grid">
-                  <StatCard
-                    title="Assigned tickets"
-                    value={assignedTickets.length}
-                    description="Tickets assigned to you"
-                  />
-
-                  <StatCard
-                    title="Open"
-                    value={assignedTickets.filter(
-                      (ticket) => ticket.status === 'Open'
-                    ).length}
-                    description="Waiting for action"
-                  />
-
-                  <StatCard
-                    title="In progress"
-                    value={assignedTickets.filter(
-                      (ticket) => ticket.status === 'In Progress'
-                    ).length}
-                    description="Currently being handled"
-                  />
-
-                  <StatCard
-                    title="Resolved"
-                    value={assignedTickets.filter(
-                      (ticket) => ticket.status === 'Resolved'
-                    ).length}
-                    description="Resolved tickets"
-                  />
-                </section>
-
-                <section className="tickets-section">
-                  <div className="section-heading">
-                    <div>
-                      <h2>My assigned tickets</h2>
-                      <p>View tickets assigned to your account.</p>
-                    </div>
-
-                    <SearchBar
-                      value={search}
-                      onChange={setSearch}
-                    />
-                  </div>
-
-                  {assignedTicketsLoading ? (
-                    <p>Loading assigned tickets...</p>
-                  ) : (
-                    <TicketTable
-                      tickets={filteredAssignedTickets}
-                      onViewDetails={setSelectedTicket}
-                    />
-                  )}
-                </section>
-              </>
+              <AgentDashboard
+                assignedTickets={assignedTickets}
+                loading={assignedTicketsLoading}
+                error={assignedTicketsError}
+                onViewDetails={setSelectedTicket}
+              />
             ) : activeAdminPage === 'Tickets' ? (
               <AdminTickets
                 token={token}
