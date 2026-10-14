@@ -1,5 +1,6 @@
-
 import { useQuery } from '@tanstack/react-query'
+import AdminStatCards from "../../components/organisms/admin/AdminStatCards";
+
 import {
     ResponsiveContainer,
     PieChart,
@@ -19,8 +20,6 @@ import {
     getAdminAgentPerformance,
     getAdminTrends,
 } from '../../services/ticketService'
-
-import AdminStatCards from '../../components/organisms/admin/AdminStatCards'
 
 const STATUS_COLORS = [
     '#6366f1',

@@ -1,5 +1,5 @@
 
-import AdminStatCard from '../../molecules/AdminStatCard'
+import StatCard from '../../molecules/StatCard'
 
 const statistics = [
     {
@@ -60,7 +60,7 @@ function AdminStatCards({ summary }) {
             className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4"
         >
             {statistics.map((stat) => (
-                <AdminStatCard
+                <StatCard
                     key={stat.key}
                     title={stat.title}
                     value={summary[stat.key]}

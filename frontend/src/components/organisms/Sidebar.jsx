@@ -1,14 +1,16 @@
 const adminNavigationItems = ['Dashboard', 'Tickets']
-const defaultNavigationItems = [
-    'Dashboard',
-    'Tickets',
-    'My Tasks',
-    'Notifications',
-]
+const agentNavigationItems = ['Dashboard', 'My Tickets']
+const customerNavigationItems = ['Dashboard', 'My Tickets']
 
 function Sidebar({ currentUser, activePage, onNavigate }) {
-    const isAdmin = currentUser?.role === 'admin'
-    const navigationItems = isAdmin ? adminNavigationItems : defaultNavigationItems
+    const role = currentUser?.role
+
+    const navigationItems =
+        role === 'admin'
+            ? adminNavigationItems
+            : role === 'agent'
+                ? agentNavigationItems
+                : customerNavigationItems
 
     return (
         <aside className="fixed inset-y-0 left-0 z-20 flex w-[245px] flex-col border-r border-slate-200 bg-white px-[18px] py-7 max-[1000px]:w-[200px] max-[650px]:static max-[650px]:w-full max-[650px]:px-4 max-[650px]:py-4">
@@ -31,14 +33,10 @@ function Sidebar({ currentUser, activePage, onNavigate }) {
                     <button
                         key={item}
                         type="button"
-                        onClick={() => {
-                            if (isAdmin && onNavigate) {
-                                onNavigate(item)
-                            }
-                        }}
+                        onClick={() => onNavigate?.(item)}
                         className={`cursor-pointer rounded-[9px] px-3 py-3 text-left text-sm ${item === activePage
-                            ? 'bg-indigo-50 font-semibold text-indigo-700'
-                            : 'text-slate-600 hover:bg-slate-50'
+                                ? 'bg-indigo-50 font-semibold text-indigo-700'
+                                : 'text-slate-600 hover:bg-slate-50'
                             }`}
                     >
                         {item}
@@ -57,7 +55,7 @@ function Sidebar({ currentUser, activePage, onNavigate }) {
                     </strong>
 
                     <small className="mt-1 block text-[11px] text-slate-400">
-                        {currentUser?.role || 'Support workspace'}
+                        {role || 'Support workspace'}
                     </small>
                 </div>
             </div>
