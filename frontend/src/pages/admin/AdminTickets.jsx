@@ -17,8 +17,8 @@ function AdminTickets({ token, onViewDetails }) {
 
     const {
         data: tickets = [],
-        isLoading,
-        error,
+        isLoading: ticketsLoading,
+        error: ticketsError,
     } = useQuery({
         queryKey: ['adminTickets', token],
         queryFn: () => getAdminTickets(token),

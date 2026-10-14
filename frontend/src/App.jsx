@@ -14,6 +14,7 @@ import { getCustomerTickets, getAssignedTickets, createCustomerTicket, updateCus
 
 import AdminDashboard from './pages/admin/AdminDashboard'
 import AdminTickets from './pages/admin/AdminTickets'
+import AdminAnalytics from './pages/admin/AdminAnalytics'
 
 import './App.css'
 
@@ -452,12 +453,12 @@ function App() {
                 </section>
               </>
             ) : activeAdminPage === 'Tickets' ? (
-              <AdminTickets token={token} />
-            ) : (
               <AdminTickets
                 token={token}
                 onViewDetails={setSelectedTicket}
               />
+            ) : (
+              <AdminDashboard token={token} />
             )}
           </>
         )}

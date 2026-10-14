@@ -298,3 +298,43 @@ export async function deleteAdminTicket(ticketId, token) {
         )
     }
 }
+
+export async function getAdminAgentPerformance(token) {
+    const response = await fetch(
+        `${API_BASE_URL}/tickets/admin/agent-performance`,
+        {
+            headers: {
+                Accept: 'application/json',
+                Authorization: `Bearer ${token}`,
+            },
+        }
+    )
+
+    if (!response.ok) {
+        throw new Error(
+            `Failed to fetch agent performance: ${response.status} - ${await getErrorMessage(response)}`
+        )
+    }
+
+    return response.json()
+}
+
+export async function getAdminTrends(token) {
+    const response = await fetch(
+        `${API_BASE_URL}/tickets/admin/trends`,
+        {
+            headers: {
+                Accept: 'application/json',
+                Authorization: `Bearer ${token}`,
+            },
+        }
+    )
+
+    if (!response.ok) {
+        throw new Error(
+            `Failed to fetch ticket trends: ${response.status} - ${await getErrorMessage(response)}`
+        )
+    }
+
+    return response.json()
+}
