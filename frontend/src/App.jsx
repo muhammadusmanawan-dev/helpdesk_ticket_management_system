@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react'
+import { useQuery, useQueryClient } from '@tanstack/react-query'
 
 import Sidebar from './components/organisms/Sidebar'
 import LoginForm from './components/organisms/LoginForm'
@@ -9,19 +10,18 @@ import CreateTicketForm from './components/organisms/CreateTicketForm'
 import TicketDetails from './components/organisms/TicketDetails'
 
 import { loginUser, getAccessToken, getCurrentUser, logoutUser } from './services/authService'
-import { getCustomerTickets, createCustomerTicket, updateCustomerTicket } from './services/ticketService'
+import { getCustomerTickets, getAssignedTickets, createCustomerTicket, updateCustomerTicket, updateAssignedTicketStatus } from './services/ticketService'
 
 import './App.css'
 
 function App() {
+  const queryClient = useQueryClient()
+
   const [token, setToken] = useState(() => getAccessToken())
-  const [tickets, setTickets] = useState([])
   const [search, setSearch] = useState('')
 
   const [loginLoading, setLoginLoading] = useState(false)
   const [loginError, setLoginError] = useState('')
-  const [ticketsLoading, setTicketsLoading] = useState(false)
-  const [ticketsError, setTicketsError] = useState('')
   const [selectedTicket, setSelectedTicket] = useState(null)
 
   const [createLoading, setCreateLoading] = useState(false)
@@ -32,15 +32,55 @@ function App() {
   const [userLoading, setUserLoading] = useState(true)
   const [userError, setUserError] = useState('')
 
+  const {
+    data: tickets = [],
+    isLoading: ticketsLoading,
+    error: ticketsQueryError,
+  } = useQuery({
+    queryKey: ['customerTickets', token],
+    queryFn: async () => {
+      try {
+        return await getCustomerTickets(token)
+      } catch (error) {
+        if (error.message.includes('401')) {
+          logoutUser()
+          setToken(null)
+          setCurrentUser(null)
+          setSelectedTicket(null)
+        }
+
+        throw error
+      }
+    },
+    enabled: Boolean(token && currentUser?.role === 'customer'),
+  })
+
+  const ticketsError = ticketsQueryError?.message ?? ''
+
+  const {
+    data: assignedTickets = [],
+    isLoading: assignedTicketsLoading,
+    error: assignedTicketsQueryError,
+  } = useQuery({
+    queryKey: ['assignedTickets', token],
+    queryFn: () => getAssignedTickets(token),
+    enabled: Boolean(token && currentUser?.role === 'agent'),
+  })
+  const assignedTicketsError = assignedTicketsQueryError?.message ?? ''
+
   async function handleLogin(email, password) {
     setLoginLoading(true)
     setLoginError('')
+    setUserError('')
+    setUserLoading(true)
+    setCurrentUser(null)
 
     try {
       const data = await loginUser(email, password)
       setToken(data.access_token)
     } catch (error) {
       setLoginError(error.message)
+      setUserLoading(false)
     } finally {
       setLoginLoading(false)
     }
@@ -50,11 +90,20 @@ function App() {
     logoutUser()
     setToken(null)
     setCurrentUser(null)
+    setUserLoading(false)
     setUserError('')
-    setTickets([])
     setSearch('')
-    setTicketsError('')
     setSelectedTicket(null)
+    setCreateError('')
+    setCreateSuccess('')
+
+    queryClient.removeQueries({
+      queryKey: ['customerTickets'],
+    })
+
+    queryClient.removeQueries({
+      queryKey: ['assignedTickets'],
+    })
   }
 
   async function handleCreateTicket(ticketData) {
@@ -63,12 +112,11 @@ function App() {
     setCreateSuccess('')
 
     try {
-      const newTicket = await createCustomerTicket(ticketData, token)
+      await createCustomerTicket(ticketData, token)
 
-      setTickets((currentTickets) => [
-        newTicket,
-        ...currentTickets,
-      ])
+      await queryClient.invalidateQueries({
+        queryKey: ['customerTickets', token],
+      })
 
       setCreateSuccess('Ticket created successfully!')
       return true
@@ -87,13 +135,9 @@ function App() {
       token
     )
 
-    setTickets((currentTickets) =>
-      currentTickets.map((ticket) =>
-        ticket.id === updatedTicket.id
-          ? updatedTicket
-          : ticket
-      )
-    )
+    await queryClient.invalidateQueries({
+      queryKey: ['customerTickets', token],
+    })
 
     setSelectedTicket(updatedTicket)
 
@@ -141,46 +185,6 @@ function App() {
     }
   }, [token])
 
-  useEffect(() => {
-    if (!token || currentUser?.role !== 'customer') {
-      return
-    }
-
-    let cancelled = false
-
-    async function loadTickets() {
-      setTicketsLoading(true)
-      setTicketsError('')
-
-      try {
-        const data = await getCustomerTickets(token)
-
-        if (!cancelled) {
-          setTickets(data)
-        }
-      } catch (error) {
-        if (!cancelled) {
-          setTicketsError(error.message)
-
-          if (error.message.includes('401')) {
-            logoutUser()
-            setToken(null)
-          }
-        }
-      } finally {
-        if (!cancelled) {
-          setTicketsLoading(false)
-        }
-      }
-    }
-
-    loadTickets()
-
-    return () => {
-      cancelled = true
-    }
-  }, [token, currentUser?.role])
-
   const filteredTickets = tickets.filter((ticket) =>
     ticket.title.toLowerCase().includes(search.toLowerCase())
   )
@@ -194,7 +198,6 @@ function App() {
       />
     )
   }
-
 
   if (userLoading) {
     return <p>Loading user...</p>
@@ -341,9 +344,7 @@ function App() {
                 <div>
                   <p className="eyebrow">YOUR ACCOUNT</p>
                   <h2>Welcome back!</h2>
-                  <p>
-                    Logged in as {currentUser.role}.
-                  </p>
+                  <p>Logged in as {currentUser.role}.</p>
                   <p>
                     The customer dashboard is available only to customer
                     accounts. Agent and admin dashboards can be added using

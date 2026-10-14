@@ -26,10 +26,10 @@ function Sidebar() {
                 {navigationItems.map((item) => (
                     <div
                         key={item}
-                        className={`cursor - pointer rounded - [9px] px - 3 py - 3 text - sm ${item === 'Dashboard'
+                        className={`cursor-pointer rounded-[9px] px-3 py-3 text-sm ${item === 'Dashboard'
                             ? 'bg-indigo-50 font-semibold text-indigo-700'
                             : 'text-slate-600 hover:bg-slate-50'
-                            } `}
+                            }`}
                     >
                         {item}
                     </div>
