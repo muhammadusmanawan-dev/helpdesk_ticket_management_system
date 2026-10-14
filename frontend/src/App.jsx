@@ -15,6 +15,7 @@ import { getCustomerTickets, getAssignedTickets, createCustomerTicket, updateCus
 import AdminDashboard from './pages/admin/AdminDashboard'
 import AdminTickets from './pages/admin/AdminTickets'
 import AgentDashboard from './pages/agent/AgentDashboard'
+import AgentTickets from './pages/agent/AgentTickets'
 
 import './App.css'
 
@@ -36,6 +37,8 @@ function App() {
   const [currentUser, setCurrentUser] = useState(null)
   const [userLoading, setUserLoading] = useState(true)
   const [userError, setUserError] = useState('')
+
+  const [activeAgentPage, setActiveAgentPage] = useState('Dashboard')
 
   // Customer: Retrieving Customer tickets
   const {
@@ -262,8 +265,8 @@ function App() {
     <div className="app-layout">
       <Sidebar
         currentUser={currentUser}
-        activePage={activeAdminPage}
-        onNavigate={setActiveAdminPage}
+        activePage={isAgent ? activeAgentPage : activeAdminPage}
+        onNavigate={isAgent ? setActiveAgentPage : setActiveAdminPage}
       />
 
       <main className="main-content">
@@ -392,12 +395,21 @@ function App() {
                 </section>
               </>
             ) : isAgent ? (
-              <AgentDashboard
-                assignedTickets={assignedTickets}
-                loading={assignedTicketsLoading}
-                error={assignedTicketsError}
-                onViewDetails={setSelectedTicket}
-              />
+              activeAgentPage === 'My Tickets' ? (
+                <AgentTickets
+                  assignedTickets={assignedTickets}
+                  loading={assignedTicketsLoading}
+                  error={assignedTicketsError}
+                  onViewDetails={setSelectedTicket}
+                />
+              ) : (
+                <AgentDashboard
+                  assignedTickets={assignedTickets}
+                  loading={assignedTicketsLoading}
+                  error={assignedTicketsError}
+                  onViewDetails={setSelectedTicket}
+                />
+              )
             ) : activeAdminPage === 'Tickets' ? (
               <AdminTickets
                 token={token}

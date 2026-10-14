@@ -1,4 +1,3 @@
-import { useState } from 'react'
 import {
     ResponsiveContainer,
     PieChart,
@@ -8,8 +7,7 @@ import {
     Legend,
 } from 'recharts'
 
-import SearchBar from '../../components/molecules/SearchBar'
-import TicketTable from '../../components/organisms/TicketTable'
+import AgentStatCards from '../../components/organisms/agent/AgentStatCards'
 
 const STATUS_COLORS = [
     '#6366f1',
@@ -33,14 +31,7 @@ function AgentDashboard({
     assignedTickets = [],
     loading,
     error,
-    onViewDetails,
 }) {
-    const [search, setSearch] = useState('')
-
-    const filteredTickets = assignedTickets.filter((ticket) =>
-        (ticket.title ?? '').toLowerCase().includes(search.toLowerCase())
-    )
-
     const statuses = [
         'Open',
         'Assigned',
@@ -50,6 +41,8 @@ function AgentDashboard({
     ]
 
     const priorities = ['Low', 'Medium', 'High', 'Urgent']
+
+    const totalTickets = assignedTickets.length
 
     const statusData = statuses.map((status) => ({
         name: status,
@@ -67,6 +60,11 @@ function AgentDashboard({
         ).length,
     }))
 
+    const getPercentage = (value) =>
+        totalTickets > 0
+            ? ((Number(value) / totalTickets) * 100).toFixed(1)
+            : '0.0'
+
     if (loading) {
         return (
             <p className="text-sm text-slate-500">
@@ -83,13 +81,15 @@ function AgentDashboard({
                 </p>
             )}
 
+            <AgentStatCards tickets={assignedTickets} />
+
             <div className="grid grid-cols-1 gap-6 xl:grid-cols-2">
                 <section className={chartCard}>
                     <h2 className="text-lg font-bold text-slate-900">
                         My Ticket Status
                     </h2>
                     <p className="mb-5 mt-1 text-sm text-slate-500">
-                        Status distribution of your assigned tickets.
+                        Percentage distribution of your assigned tickets.
                     </p>
 
                     {statusData.some((item) => item.value > 0) ? (
@@ -97,31 +97,45 @@ function AgentDashboard({
                             <ResponsiveContainer width="100%" height="100%">
                                 <PieChart>
                                     <Pie
-                                        data={statusData.filter((item) => item.value > 0)}
+                                        data={statusData.filter(
+                                            (item) => item.value > 0
+                                        )}
                                         dataKey="value"
                                         nameKey="name"
                                         cx="50%"
                                         cy="45%"
                                         outerRadius={100}
-                                        label={({ name, value }) => `${name}: ${value}`}
+                                        label={({ name, value }) =>
+                                            `${name}: ${getPercentage(value)}%`
+                                        }
                                     >
                                         {statusData
                                             .filter((item) => item.value > 0)
                                             .map((item) => (
                                                 <Cell
                                                     key={item.name}
-                                                    fill={STATUS_COLORS[statuses.indexOf(item.name)]}
+                                                    fill={
+                                                        STATUS_COLORS[
+                                                        statuses.indexOf(item.name)
+                                                        ]
+                                                    }
                                                 />
                                             ))}
                                     </Pie>
-                                    <Tooltip />
+
+                                    <Tooltip
+                                        formatter={(value, name) => [
+                                            `${getPercentage(value)}% (${value} tickets)`,
+                                            name,
+                                        ]}
+                                    />
                                     <Legend />
                                 </PieChart>
                             </ResponsiveContainer>
                         </div>
                     ) : (
                         <p className="py-10 text-center text-sm text-slate-500">
-                            No ticket data available.
+                            No ticket status data available.
                         </p>
                     )}
                 </section>
@@ -131,7 +145,7 @@ function AgentDashboard({
                         My Ticket Priorities
                     </h2>
                     <p className="mb-5 mt-1 text-sm text-slate-500">
-                        Priority distribution of your assigned tickets.
+                        Percentage distribution by ticket priority.
                     </p>
 
                     {priorityData.some((item) => item.value > 0) ? (
@@ -139,13 +153,17 @@ function AgentDashboard({
                             <ResponsiveContainer width="100%" height="100%">
                                 <PieChart>
                                     <Pie
-                                        data={priorityData.filter((item) => item.value > 0)}
+                                        data={priorityData.filter(
+                                            (item) => item.value > 0
+                                        )}
                                         dataKey="value"
                                         nameKey="name"
                                         cx="50%"
                                         cy="45%"
                                         outerRadius={100}
-                                        label={({ name, value }) => `${name}: ${value}`}
+                                        label={({ name, value }) =>
+                                            `${name}: ${getPercentage(value)}%`
+                                        }
                                     >
                                         {priorityData
                                             .filter((item) => item.value > 0)
@@ -153,46 +171,31 @@ function AgentDashboard({
                                                 <Cell
                                                     key={item.name}
                                                     fill={
-                                                        PRIORITY_COLORS[priorities.indexOf(item.name)]
+                                                        PRIORITY_COLORS[
+                                                        priorities.indexOf(item.name)
+                                                        ]
                                                     }
                                                 />
                                             ))}
                                     </Pie>
-                                    <Tooltip />
+
+                                    <Tooltip
+                                        formatter={(value, name) => [
+                                            `${getPercentage(value)}% (${value} tickets)`,
+                                            name,
+                                        ]}
+                                    />
                                     <Legend />
                                 </PieChart>
                             </ResponsiveContainer>
                         </div>
                     ) : (
                         <p className="py-10 text-center text-sm text-slate-500">
-                            No priority data available.
+                            No ticket priority data available.
                         </p>
                     )}
                 </section>
             </div>
-
-            <section className={chartCard}>
-                <div className="mb-5 flex flex-col justify-between gap-4 sm:flex-row sm:items-center">
-                    <div>
-                        <h2 className="text-lg font-bold text-slate-900">
-                            My Assigned Tickets
-                        </h2>
-                        <p className="mt-1 text-sm text-slate-500">
-                            Search and open tickets assigned to you.
-                        </p>
-                    </div>
-
-                    <SearchBar
-                        value={search}
-                        onChange={setSearch}
-                    />
-                </div>
-
-                <TicketTable
-                    tickets={filteredTickets}
-                    onViewDetails={onViewDetails}
-                />
-            </section>
         </div>
     )
 }
