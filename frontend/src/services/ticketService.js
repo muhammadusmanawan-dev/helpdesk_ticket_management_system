@@ -194,3 +194,25 @@ export async function updateAssignedTicketStatus(ticketId, status, token) {
 
     return normalizeTicket(await response.json())
 }
+
+
+export async function getAdminDashboardSummary(token) {
+    const response = await fetch(
+        `${API_BASE_URL}/tickets/admin/dashboard-summary`,
+        {
+            method: 'GET',
+            headers: {
+                Accept: 'application/json',
+                Authorization: `Bearer ${token}`,
+            },
+        }
+    )
+
+    if (!response.ok) {
+        throw new Error(
+            `Failed to fetch admin dashboard: ${response.status} - ${await getErrorMessage(response)}`
+        )
+    }
+
+    return response.json()
+}

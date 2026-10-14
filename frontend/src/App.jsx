@@ -12,6 +12,8 @@ import TicketDetails from './components/organisms/TicketDetails'
 import { loginUser, getAccessToken, getCurrentUser, logoutUser } from './services/authService'
 import { getCustomerTickets, getAssignedTickets, createCustomerTicket, updateCustomerTicket, updateAssignedTicketStatus } from './services/ticketService'
 
+import AdminDashboard from './pages/admin/AdminDashboard'
+
 import './App.css'
 
 function App() {
@@ -172,7 +174,6 @@ function App() {
   // Load logged-in user's information
   useEffect(() => {
     if (!token) {
-      setUserLoading(false)
       return
     }
 
@@ -445,16 +446,7 @@ function App() {
                 </section>
               </>
             ) : (
-              <section className="welcome-section">
-                <div>
-                  <p className="eyebrow">ADMIN WORKSPACE</p>
-                  <h2>Welcome back!</h2>
-                  <p>
-                    Logged in as admin. The admin dashboard can be
-                    connected to the existing admin backend routes next.
-                  </p>
-                </div>
-              </section>
+              <AdminDashboard token={token} />
             )}
           </>
         )}
