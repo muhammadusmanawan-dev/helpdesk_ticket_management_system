@@ -13,6 +13,7 @@ from app.notifications.service import NotificationService
 from datetime import datetime, timedelta
 from app.users.models import User, UserRole
 from app.tickets.state_machine import validate_transition, validate_assignment
+from fastapi import HTTPException, status
 
 class TicketService:
 
@@ -88,14 +89,31 @@ class TicketService:
             agent_id=agent_id,
         )
     
+ 
     @staticmethod
-    async def update_ticket_status(session: AsyncSession, ticket_id: int, agent_id: UUID, ticket_data: TicketUpdateStatus ) -> Ticket | None:
-
-        ticket = await TicketRepository.get_assigned_ticket(
-            session=session,
-            ticket_id=ticket_id,
-            agent_id=agent_id,
-        )
+    async def update_ticket_status(
+        session: AsyncSession,
+        ticket_id: int,
+        ticket_data: TicketUpdateStatus,
+        user: User,
+    ) -> Ticket | None:
+        
+        if user.role == UserRole.AGENT:
+            ticket = await TicketRepository.get_assigned_ticket(
+                session=session,
+                ticket_id=ticket_id,
+                agent_id=user.id,
+            )
+        elif user.role == UserRole.ADMIN:
+            ticket = await TicketRepository.get_ticket(
+                session=session,
+                ticket_id=ticket_id,
+            )
+        else:
+            raise HTTPException(
+                status_code=status.HTTP_403_FORBIDDEN,
+                detail="You are not allowed to change ticket status.",
+            )
 
         if ticket is None:
             return None
@@ -105,6 +123,7 @@ class TicketService:
         validate_transition(
             current_status=old_status,
             new_status=ticket_data.status,
+            user_role=user.role,
         )
 
         await TicketRepository.update_ticket_status(
@@ -114,17 +133,23 @@ class TicketService:
         )
 
         await NotificationService.create_notification(
-        session=session,
-        user_id=ticket.customer_id,
-        message=f"Your ticket #{ticket.id} status changed from {old_status} to {ticket_data.status}.",
+            session=session,
+            user_id=ticket.customer_id,
+            message=(
+                f"Your ticket #{ticket.id} status changed "
+                f"from {old_status} to {ticket_data.status}."
+            ),
         )
 
         await AuditLogService.create_log(
             session=session,
             ticket_id=ticket.id,
-            user_id=agent_id,
+            user_id=user.id,
             action="status_changed",
-            details=f"Status changed from {old_status} to {ticket_data.status}",
+            details=(
+                f"Status changed from {old_status} "
+                f"to {ticket_data.status}"
+            ),
         )
 
         await session.commit()

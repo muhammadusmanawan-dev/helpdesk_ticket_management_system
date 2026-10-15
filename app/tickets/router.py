@@ -20,6 +20,8 @@ from app.tickets.schemas import (
     DailyTicketTrend,
 )
 
+from app.users.models import UserRole
+
 router = APIRouter()
 
 @router.post("/", response_model=TicketRead, status_code=status.HTTP_201_CREATED)
@@ -130,27 +132,56 @@ async def get_assigned_tickets_by_id(
         agent_id=agent_id,
     )
 
-@router.patch("/{ticket_id}/status",response_model=TicketRead)
+
+@router.patch("/{ticket_id}/status", response_model=TicketRead)
 async def update_ticket_status(
     ticket_id: int,
     ticket_data: TicketUpdateStatus,
-    background_tasks:BackgroundTasks,
+    background_tasks: BackgroundTasks,
     session: SessionDep,
-    user: User = Depends(require_role("agent")),
+    user: User = Depends(require_role(UserRole.AGENT)),
 ):
     ticket = await TicketService.update_ticket_status(
         session=session,
         ticket_id=ticket_id,
-        agent_id=user.id,
         ticket_data=ticket_data,
+        user=user,
     )
 
     if ticket is None:
         raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
+            status_code=404,
             detail="Ticket not found or not assigned to you",
         )
-    
+
+    event = WebhookEvent.TICKET_STATUS_CHANGED
+    payload = EVENT_PAYLOAD_BUILDERS[event](ticket)
+    background_tasks.add_task(process_ticket_webhook, event, payload)
+
+    return ticket
+
+
+@router.patch("/{ticket_id}/admin-status", response_model=TicketRead)
+async def admin_update_ticket_status(
+    ticket_id: int,
+    ticket_data: TicketUpdateStatus,
+    background_tasks: BackgroundTasks,
+    session: SessionDep,
+    user: User = Depends(require_role(UserRole.ADMIN)),
+):
+    ticket = await TicketService.update_ticket_status(
+        session=session,
+        ticket_id=ticket_id,
+        ticket_data=ticket_data,
+        user=user,
+    )
+
+    if ticket is None:
+        raise HTTPException(
+            status_code=404,
+            detail="Ticket not found",
+        )
+
     event = WebhookEvent.TICKET_STATUS_CHANGED
     payload = EVENT_PAYLOAD_BUILDERS[event](ticket)
     background_tasks.add_task(process_ticket_webhook, event, payload)

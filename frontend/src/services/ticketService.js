@@ -338,3 +338,27 @@ export async function getAdminTrends(token) {
 
     return response.json()
 }
+
+
+export async function updateAdminTicketStatus(ticketId, status, token) {
+    const response = await fetch(
+        `${API_BASE_URL}/tickets/${ticketId}/admin-status`,
+        {
+            method: 'PATCH',
+            headers: {
+                Accept: 'application/json',
+                'Content-Type': 'application/json',
+                Authorization: `Bearer ${token}`,
+            },
+            body: JSON.stringify({ status }),
+        }
+    )
+
+    if (!response.ok) {
+        throw new Error(
+            `Failed to update ticket status: ${response.status} - ${await getErrorMessage(response)}`
+        )
+    }
+
+    return normalizeTicket(await response.json())
+}

@@ -83,12 +83,12 @@ class TicketRepository:
         return result.scalar_one_or_none()
 
     @staticmethod
-    async def update_ticket_status(session: AsyncSession, ticket: Ticket, status) -> Ticket:
-        if (
-            status == TicketStatus.RESOLVED
-            and ticket.status != TicketStatus.RESOLVED
-        ):
-            ticket.resolved_at = datetime.now()
+    async def update_ticket_status(session: AsyncSession, ticket: Ticket, status: TicketStatus) -> Ticket:
+        if status == TicketStatus.RESOLVED:
+            if ticket.status != TicketStatus.RESOLVED:
+                ticket.resolved_at = datetime.now()
+        else:
+            ticket.resolved_at = None
 
         ticket.status = status
 
