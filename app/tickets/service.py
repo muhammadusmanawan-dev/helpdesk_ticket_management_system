@@ -12,6 +12,7 @@ from app.notifications.service import NotificationService
 
 from datetime import datetime, timedelta
 from app.users.models import User, UserRole
+from app.tickets.state_machine import validate_transition, validate_assignment
 
 class TicketService:
 
@@ -101,6 +102,11 @@ class TicketService:
 
         old_status = ticket.status
 
+        validate_transition(
+            current_status=old_status,
+            new_status=ticket_data.status,
+        )
+
         await TicketRepository.update_ticket_status(
             session=session,
             ticket=ticket,
@@ -139,6 +145,8 @@ class TicketService:
 
         if ticket is None:
             return None
+
+        validate_assignment(ticket.status)
         
         agent = await TicketRepository.get_agent_by_id(
         session=session,

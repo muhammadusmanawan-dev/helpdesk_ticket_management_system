@@ -114,6 +114,7 @@ class TicketRepository:
     @staticmethod
     async def assign_ticket(session: AsyncSession, ticket: Ticket, agent_id: UUID) -> Ticket:
         ticket.assigned_agent_id = agent_id
+        ticket.status = TicketStatus.ASSIGNED
 
         await session.flush()
         await session.refresh(ticket)
