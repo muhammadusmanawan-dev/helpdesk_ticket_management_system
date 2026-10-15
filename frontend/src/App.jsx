@@ -10,7 +10,7 @@ import CreateTicketForm from './components/organisms/CreateTicketForm'
 import TicketDetails from './components/organisms/TicketDetails'
 
 import { loginUser, getAccessToken, getCurrentUser, logoutUser } from './services/authService'
-import { getCustomerTickets, getAssignedTickets, createCustomerTicket, updateCustomerTicket, updateAssignedTicketStatus } from './services/ticketService'
+import { getCustomerTickets, getAssignedTickets, createCustomerTicket, updateCustomerTicket, updateAssignedTicketStatus, updateAdminTicketStatus } from './services/ticketService'
 
 import AdminDashboard from './pages/admin/AdminDashboard'
 import AdminTickets from './pages/admin/AdminTickets'
@@ -144,12 +144,16 @@ function App() {
   }
 
   // Customer updates ticket information
-  async function handleUpdateTicket(ticketId, ticketData) {
-    const updatedTicket = await updateCustomerTicket(
-      ticketId,
-      ticketData,
-      token
-    )
+  async function handleStatusUpdated(ticketId, status) {
+    const updatedTicket = currentUser.role === 'admin' ? await updateAdminTicketStatus(ticketId, status, token) : await updateAssignedTicketStatus(ticketId, status, token)
+
+    await queryClient.invalidateQueries({
+      queryKey: ['adminTickets', token],
+    })
+
+    await queryClient.invalidateQueries({
+      queryKey: ['assignedTickets', token],
+    })
 
     await queryClient.invalidateQueries({
       queryKey: ['customerTickets', token],
@@ -160,16 +164,16 @@ function App() {
     return updatedTicket
   }
 
-  // Agent updates the status of an assigned ticket
-  async function handleStatusUpdated(ticketId, status) {
-    const updatedTicket = await updateAssignedTicketStatus(
+  // Customer updates ticket information
+  async function handleUpdateTicket(ticketId, ticketData) {
+    const updatedTicket = await updateCustomerTicket(
       ticketId,
-      status,
+      ticketData,
       token
     )
 
     await queryClient.invalidateQueries({
-      queryKey: ['assignedTickets', token],
+      queryKey: ['customerTickets', token],
     })
 
     setSelectedTicket(updatedTicket)

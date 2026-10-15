@@ -9,7 +9,27 @@ import {
 function TicketDetails({ ticket, token, currentUser, onBack, onTicketUpdated, onStatusUpdated }) {
     const isCustomer = currentUser?.role === 'customer'
     const isAgent = currentUser?.role === 'agent'
+    const isAdmin = currentUser?.role === 'admin'
+
     const canViewComments = isCustomer || isAgent
+
+    const currentStatus = ticket.status.toLowerCase().replaceAll(' ', '_')
+
+    const statusOptions = isAdmin
+        ? {
+            open: ['assigned'],
+            assigned: ['open', 'in_progress'],
+            in_progress: ['open', 'assigned', 'resolved'],
+            resolved: ['open', 'assigned', 'in_progress', 'closed'],
+            closed: ['open'],
+        }
+        : {
+            assigned: ['in_progress'],
+            in_progress: ['resolved'],
+        }
+
+    const availableStatuses = statusOptions[currentStatus] ?? []
+
     const queryClient = useQueryClient()
 
     const {
@@ -265,23 +285,27 @@ function TicketDetails({ ticket, token, currentUser, onBack, onTicketUpdated, on
                             <strong>Status:</strong> {ticket.status}
                         </p>
 
-                        {isAgent && (
+                        {(isAgent || isAdmin) && (
                             <div className="status-update-form">
                                 <label htmlFor="ticket-status">
-                                    Update ticket status
+                                    {isAdmin ? 'Manage ticket status' : 'Update ticket status'}
                                 </label>
 
                                 <select
                                     id="ticket-status"
                                     value={statusValue}
                                     onChange={handleStatusChange}
-                                    disabled={statusSaving}
+                                    disabled={statusSaving || availableStatuses.length === 0}
                                 >
-                                    <option value="open">Open</option>
-                                    <option value="assigned">Assigned</option>
-                                    <option value="in_progress">In Progress</option>
-                                    <option value="resolved">Resolved</option>
-                                    <option value="closed">Closed</option>
+                                    <option value={currentStatus}>
+                                        {ticket.status}
+                                    </option>
+
+                                    {availableStatuses.map((status) => (
+                                        <option key={status} value={status}>
+                                            {status.replaceAll('_', ' ')}
+                                        </option>
+                                    ))}
                                 </select>
 
                                 {statusSaving && <p>Updating status...</p>}
@@ -291,9 +315,7 @@ function TicketDetails({ ticket, token, currentUser, onBack, onTicketUpdated, on
                                 )}
 
                                 {statusSuccess && (
-                                    <p className="success-message">
-                                        {statusSuccess}
-                                    </p>
+                                    <p className="success-message">{statusSuccess}</p>
                                 )}
                             </div>
                         )}
