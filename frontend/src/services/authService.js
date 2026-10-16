@@ -30,7 +30,7 @@ export async function loginUser(email, password) {
 
     try {
         response = await fetch(
-            `${API_BASE_URL}/users/auth/jwt/login`,
+            `${API_BASE_URL}/users/auth/login`,
             {
                 method: 'POST',
                 headers: {
