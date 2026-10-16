@@ -3,10 +3,6 @@ import { useQuery, useQueryClient } from '@tanstack/react-query'
 
 import Sidebar from './components/organisms/Sidebar'
 import LoginForm from './components/organisms/LoginForm'
-import StatCard from './components/molecules/StatCard'
-import SearchBar from './components/molecules/SearchBar'
-import TicketTable from './components/organisms/TicketTable'
-import CreateTicketForm from './components/organisms/CreateTicketForm'
 import TicketDetails from './components/organisms/TicketDetails'
 
 import { loginUser, getAccessToken, getCurrentUser, logoutUser } from './services/authService'
@@ -16,6 +12,8 @@ import AdminDashboard from './pages/admin/AdminDashboard'
 import AdminTickets from './pages/admin/AdminTickets'
 import AgentDashboard from './pages/agent/AgentDashboard'
 import AgentTickets from './pages/agent/AgentTickets'
+import CustomerDashboard from './pages/customer/CustomerDashboard'
+import CustomerTickets from './pages/customer/CustomerTickets'
 
 import './App.css'
 
@@ -23,8 +21,6 @@ function App() {
   const queryClient = useQueryClient()
 
   const [token, setToken] = useState(() => getAccessToken())
-  const [search, setSearch] = useState('')
-  const [activeAdminPage, setActiveAdminPage] = useState('Dashboard')
 
   const [loginLoading, setLoginLoading] = useState(false)
   const [loginError, setLoginError] = useState('')
@@ -38,7 +34,10 @@ function App() {
   const [userLoading, setUserLoading] = useState(true)
   const [userError, setUserError] = useState('')
 
+  const [activeAdminPage, setActiveAdminPage] = useState('Dashboard')
   const [activeAgentPage, setActiveAgentPage] = useState('Dashboard')
+  const [activeCustomerPage, setActiveCustomerPage] = useState('Dashboard')
+
 
   // Customer: Retrieving Customer tickets
   const {
@@ -106,7 +105,6 @@ function App() {
     setCurrentUser(null)
     setUserLoading(false)
     setUserError('')
-    setSearch('')
     setSelectedTicket(null)
     setCreateError('')
     setCreateSuccess('')
@@ -145,7 +143,23 @@ function App() {
 
   // Customer updates ticket information
   async function handleStatusUpdated(ticketId, status) {
-    const updatedTicket = currentUser.role === 'admin' ? await updateAdminTicketStatus(ticketId, status, token) : await updateAssignedTicketStatus(ticketId, status, token)
+    let updatedTicket
+
+    if (currentUser.role === 'admin') {
+      updatedTicket = await updateAdminTicketStatus(
+        ticketId,
+        status,
+        token
+      )
+    } else if (currentUser.role === 'agent') {
+      updatedTicket = await updateAssignedTicketStatus(
+        ticketId,
+        status,
+        token
+      )
+    } else {
+      throw new Error('You are not allowed to update ticket status.')
+    }
 
     await queryClient.invalidateQueries({
       queryKey: ['adminTickets', token],
@@ -223,11 +237,7 @@ function App() {
     }
   }, [token])
 
-  // Search customer and agent tickets separately
-  const filteredTickets = tickets.filter((ticket) =>
-    ticket.title.toLowerCase().includes(search.toLowerCase())
-  )
-
+  // if token is not already availble (user havent logged in)
   if (!token) {
     return (
       <LoginForm
@@ -265,19 +275,30 @@ function App() {
   const isCustomer = currentUser.role === 'customer'
   const isAgent = currentUser.role === 'agent'
 
+  const activePage = isCustomer
+    ? activeCustomerPage
+    : isAgent
+      ? activeAgentPage
+      : activeAdminPage
+
+  const setActivePage = isCustomer
+    ? setActiveCustomerPage
+    : isAgent
+      ? setActiveAgentPage
+      : setActiveAdminPage
   return (
     <div className="app-layout">
       <Sidebar
         currentUser={currentUser}
-        activePage={isAgent ? activeAgentPage : activeAdminPage}
-        onNavigate={isAgent ? setActiveAgentPage : setActiveAdminPage}
+        activePage={activePage}
+        onNavigate={setActivePage}
       />
 
       <main className="main-content">
         <header className="topbar">
           <div>
             <p className="eyebrow">SUPPORT WORKSPACE</p>
-            <h1>Dashboard</h1>
+            <h1>{selectedTicket ? 'Ticket Details' : activePage}</h1>
           </div>
 
           <div className="topbar-user">
@@ -307,7 +328,11 @@ function App() {
             <section className="welcome-section">
               <div>
                 <p className="eyebrow">
-                  {isCustomer ? 'TICKET WORKSPACE' : 'AGENT WORKSPACE'}
+                  {isCustomer
+                    ? 'CUSTOMER WORKSPACE'
+                    : isAgent
+                      ? 'AGENT WORKSPACE'
+                      : 'ADMIN WORKSPACE'}
                 </p>
 
                 <h2>Welcome back!</h2>
@@ -322,82 +347,25 @@ function App() {
               </div>
             </section>
 
-            {isCustomer && ticketsError && (
-              <p className="api-error">
-                Could not load tickets: {ticketsError}
-              </p>
-            )}
-
-            {isAgent && assignedTicketsError && (
-              <p className="api-error">
-                Could not load assigned tickets: {assignedTicketsError}
-              </p>
-            )}
-
             {isCustomer ? (
-              <>
-                <section className="stats-grid">
-                  <StatCard
-                    title="Total tickets"
-                    value={tickets.length}
-                    description="Tickets loaded from backend"
-                  />
-
-                  <StatCard
-                    title="Open"
-                    value={tickets.filter(
-                      (ticket) => ticket.status === 'Open'
-                    ).length}
-                    description="Waiting for action"
-                  />
-
-                  <StatCard
-                    title="In progress"
-                    value={tickets.filter(
-                      (ticket) => ticket.status === 'In Progress'
-                    ).length}
-                    description="Currently being handled"
-                  />
-
-                  <StatCard
-                    title="Resolved"
-                    value={tickets.filter(
-                      (ticket) => ticket.status === 'Resolved'
-                    ).length}
-                    description="Completed tickets"
-                  />
-                </section>
-
-                <CreateTicketForm
+              activeCustomerPage === 'My Tickets' ? (
+                <CustomerTickets
+                  tickets={tickets}
+                  loading={ticketsLoading}
+                  error={ticketsError}
                   onCreate={handleCreateTicket}
-                  loading={createLoading}
-                  error={createError}
-                  success={createSuccess}
+                  createLoading={createLoading}
+                  createError={createError}
+                  createSuccess={createSuccess}
+                  onViewDetails={setSelectedTicket}
                 />
-
-                <section className="tickets-section">
-                  <div className="section-heading">
-                    <div>
-                      <h2>Recent tickets</h2>
-                      <p>Review and search support requests.</p>
-                    </div>
-
-                    <SearchBar
-                      value={search}
-                      onChange={setSearch}
-                    />
-                  </div>
-
-                  {ticketsLoading ? (
-                    <p>Loading tickets...</p>
-                  ) : (
-                    <TicketTable
-                      tickets={filteredTickets}
-                      onViewDetails={setSelectedTicket}
-                    />
-                  )}
-                </section>
-              </>
+              ) : (
+                <CustomerDashboard
+                  tickets={tickets}
+                  loading={ticketsLoading}
+                  error={ticketsError}
+                />
+              )
             ) : isAgent ? (
               activeAgentPage === 'My Tickets' ? (
                 <AgentTickets
@@ -411,7 +379,6 @@ function App() {
                   assignedTickets={assignedTickets}
                   loading={assignedTicketsLoading}
                   error={assignedTicketsError}
-                  onViewDetails={setSelectedTicket}
                 />
               )
             ) : activeAdminPage === 'Tickets' ? (
