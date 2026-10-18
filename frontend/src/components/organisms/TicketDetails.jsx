@@ -6,7 +6,7 @@ import {
     createTicketComment,
 } from '../../services/ticketService'
 
-function TicketDetails({ ticket, token, currentUser, onBack, onTicketUpdated, onStatusUpdated }) {
+function TicketDetails({ ticket, currentUser, onBack, onTicketUpdated, onStatusUpdated }) {
     const isCustomer = currentUser?.role === 'customer'
     const isAgent = currentUser?.role === 'agent'
     const isAdmin = currentUser?.role === 'admin'
@@ -37,9 +37,9 @@ function TicketDetails({ ticket, token, currentUser, onBack, onTicketUpdated, on
         isLoading: commentsLoading,
         error: commentsQueryError,
     } = useQuery({
-        queryKey: ['ticketComments', ticket.id, token],
-        queryFn: () => getTicketComments(ticket.id, token),
-        enabled: Boolean(token) && Boolean(ticket.id) && canViewComments,
+        queryKey: ['ticketComments', ticket.id],
+        queryFn: () => getTicketComments(ticket.id),
+        enabled: Boolean(ticket.id) && canViewComments,
     })
     const commentsError = commentsQueryError?.message ?? ''
 
@@ -104,7 +104,7 @@ function TicketDetails({ ticket, token, currentUser, onBack, onTicketUpdated, on
 
     const createCommentMutation = useMutation({
         mutationFn: ({ ticketId, content }) =>
-            createTicketComment(ticketId, content, token),
+            createTicketComment(ticketId, content),
 
         onSuccess: () => {
             queryClient.invalidateQueries({

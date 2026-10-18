@@ -1,27 +1,37 @@
+const API_BASE_URL = 'http://localhost:8000'
 
-const API_BASE_URL = 'http://127.0.0.1:8000'
+async function handleResponse(response) {
+    if (response.status === 204) {
+        return null
+    }
 
-export async function getCurrentUser(token) {
+    const data = await response.json().catch(() => null)
+    if (!response.ok) {
+        throw new Error(
+            `Request failed: ${response.status} - ${typeof data?.detail === 'string'
+                ? data.detail
+                : 'Unknown error'
+            }`
+        )
+    }
+
+    return data
+}
+
+export async function getCurrentUser() {
     const response = await fetch(`${API_BASE_URL}/users/me`, {
         method: 'GET',
         headers: {
             Accept: 'application/json',
-            Authorization: `Bearer ${token}`,
         },
+        credentials: 'include',
     })
 
-    if (!response.ok) {
-        throw new Error(
-            `Failed to fetch current user: ${response.status}`
-        )
-    }
-
-    return response.json()
+    return handleResponse(response)
 }
 
 export async function loginUser(email, password) {
     const formData = new URLSearchParams()
-
     formData.append('username', email)
     formData.append('password', password)
     formData.append('grant_type', 'password')
@@ -29,42 +39,29 @@ export async function loginUser(email, password) {
     let response
 
     try {
-        response = await fetch(
-            `${API_BASE_URL}/users/auth/login`,
-            {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/x-www-form-urlencoded',
-                    Accept: 'application/json',
-                },
-                body: formData,
-            }
-        )
+        response = await fetch(`${API_BASE_URL}/users/auth/login`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/x-www-form-urlencoded',
+                Accept: 'application/json',
+            },
+            credentials: 'include',
+            body: formData,
+        })
     } catch {
         throw new Error(
-            'CORS issue occuring or backend error'
+            'Could not connect to the backend. Check that FastAPI is running.'
         )
     }
 
-    const data = await response.json()
-
-    if (!response.ok) {
-        throw new Error(
-            typeof data.detail === 'string'
-                ? data.detail
-                : 'Login failed. Please check your credentials.'
-        )
-    }
-
-    sessionStorage.setItem('access_token', data.access_token)
-
-    return data
+    return handleResponse(response)
 }
 
-export function getAccessToken() {
-    return sessionStorage.getItem('access_token')
-}
+export async function logoutUser() {
+    const response = await fetch(`${API_BASE_URL}/users/auth/logout`, {
+        method: 'POST',
+        credentials: 'include',
+    })
 
-export function logoutUser() {
-    sessionStorage.removeItem('access_token')
+    return handleResponse(response)
 }

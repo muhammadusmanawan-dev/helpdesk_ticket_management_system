@@ -1,24 +1,38 @@
+import redis.asyncio as redis
 from fastapi_users.authentication import (
     AuthenticationBackend,
-    BearerTransport,
-    JWTStrategy,
+    CookieTransport,
+    RedisStrategy,
 )
 
 from app.core.config import settings
 
-bearer_transport = BearerTransport(
-    tokenUrl="users/auth/login",
+# Redis Client connection
+redis_client = redis.from_url(
+    settings.REDIS_URL,
+    decode_responses=True,
 )
 
-def get_jwt_strategy() -> JWTStrategy:
-    return JWTStrategy(
-        secret=settings.SECRET,
-        lifetime_seconds=3600,
+# HttpOnly Cookie rules
+cookie_transport = CookieTransport(
+    cookie_name="helpdesk_session",
+    cookie_max_age=8 * 60 * 60,
+    cookie_path="/",
+    cookie_secure=False,
+    cookie_httponly=True,
+    cookie_samesite="lax",
+)
+
+# Redis manages the token-to-user mapping.
+def get_redis_strategy() -> RedisStrategy:
+    return RedisStrategy(
+        redis_client,
+        lifetime_seconds=8 * 60 * 60,
     )
 
 
 auth_backend = AuthenticationBackend(
     name="auth",
-    transport=bearer_transport,
-    get_strategy=get_jwt_strategy,
+    transport=cookie_transport,
+    get_strategy=get_redis_strategy,
 )

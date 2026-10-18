@@ -1,4 +1,4 @@
-const API_BASE_URL = 'http://127.0.0.1:8000'
+const API_BASE_URL = 'http://localhost:8000'
 
 function normalizeTicket(ticket) {
     return {
@@ -33,22 +33,21 @@ async function getErrorMessage(response) {
     }
 }
 
-export async function getCustomerTickets(token) {
+export async function getCustomerTickets() {
     const response = await fetch(
         `${API_BASE_URL}/tickets/?page=1&size=50`,
         {
             method: 'GET',
             headers: {
                 Accept: 'application/json',
-                Authorization: `Bearer ${token}`,
             },
+            credentials: 'include',
         }
     )
 
     if (!response.ok) {
         throw new Error(
-            `Failed to fetch tickets: ${response.status} - ${await getErrorMessage(response)
-            }`
+            `Failed to fetch tickets: ${response.status} - ${await getErrorMessage(response)}`
         )
     }
 
@@ -57,38 +56,35 @@ export async function getCustomerTickets(token) {
     return data.items.map(normalizeTicket)
 }
 
-export async function createCustomerTicket(ticketData, token) {
+export async function createCustomerTicket(ticketData) {
     const response = await fetch(`${API_BASE_URL}/tickets/`, {
         method: 'POST',
         headers: {
             Accept: 'application/json',
             'Content-Type': 'application/json',
-            Authorization: `Bearer ${token}`,
         },
+        credentials: 'include',
         body: JSON.stringify(ticketData),
     })
 
     if (!response.ok) {
         throw new Error(
-            `Failed to create ticket: ${response.status} - ${await getErrorMessage(response)
-            }`
+            `Failed to create ticket: ${response.status} - ${await getErrorMessage(response)}`
         )
     }
 
-    const data = await response.json()
-
-    return normalizeTicket(data)
+    return normalizeTicket(await response.json())
 }
 
-export async function getTicketComments(ticketId, token) {
+export async function getTicketComments(ticketId) {
     const response = await fetch(
         `${API_BASE_URL}/tickets/${ticketId}/comments`,
         {
             method: 'GET',
             headers: {
                 Accept: 'application/json',
-                Authorization: `Bearer ${token}`,
             },
+            credentials: 'include',
         }
     )
 
@@ -101,7 +97,7 @@ export async function getTicketComments(ticketId, token) {
     return response.json()
 }
 
-export async function createTicketComment(ticketId, content, token) {
+export async function createTicketComment(ticketId, content) {
     const response = await fetch(
         `${API_BASE_URL}/tickets/${ticketId}/comments`,
         {
@@ -109,8 +105,8 @@ export async function createTicketComment(ticketId, content, token) {
             headers: {
                 Accept: 'application/json',
                 'Content-Type': 'application/json',
-                Authorization: `Bearer ${token}`,
             },
+            credentials: 'include',
             body: JSON.stringify({ content }),
         }
     )
@@ -124,7 +120,7 @@ export async function createTicketComment(ticketId, content, token) {
     return response.json()
 }
 
-export async function updateCustomerTicket(ticketId, ticketData, token) {
+export async function updateCustomerTicket(ticketId, ticketData) {
     const response = await fetch(
         `${API_BASE_URL}/tickets/${ticketId}`,
         {
@@ -132,8 +128,8 @@ export async function updateCustomerTicket(ticketId, ticketData, token) {
             headers: {
                 Accept: 'application/json',
                 'Content-Type': 'application/json',
-                Authorization: `Bearer ${token}`,
             },
+            credentials: 'include',
             body: JSON.stringify(ticketData),
         }
     )
@@ -144,20 +140,18 @@ export async function updateCustomerTicket(ticketId, ticketData, token) {
         )
     }
 
-    const data = await response.json()
-
-    return normalizeTicket(data)
+    return normalizeTicket(await response.json())
 }
 
-export async function getAssignedTickets(token) {
+export async function getAssignedTickets() {
     const response = await fetch(
         `${API_BASE_URL}/tickets/assigned`,
         {
             method: 'GET',
             headers: {
                 Accept: 'application/json',
-                Authorization: `Bearer ${token}`,
             },
+            credentials: 'include',
         }
     )
 
@@ -172,7 +166,7 @@ export async function getAssignedTickets(token) {
     return data.map(normalizeTicket)
 }
 
-export async function updateAssignedTicketStatus(ticketId, status, token) {
+export async function updateAssignedTicketStatus(ticketId, status) {
     const response = await fetch(
         `${API_BASE_URL}/tickets/${ticketId}/status`,
         {
@@ -180,8 +174,8 @@ export async function updateAssignedTicketStatus(ticketId, status, token) {
             headers: {
                 Accept: 'application/json',
                 'Content-Type': 'application/json',
-                Authorization: `Bearer ${token}`,
             },
+            credentials: 'include',
             body: JSON.stringify({ status }),
         }
     )
@@ -195,16 +189,15 @@ export async function updateAssignedTicketStatus(ticketId, status, token) {
     return normalizeTicket(await response.json())
 }
 
-
-export async function getAdminDashboardSummary(token) {
+export async function getAdminDashboardSummary() {
     const response = await fetch(
         `${API_BASE_URL}/tickets/admin/dashboard-summary`,
         {
             method: 'GET',
             headers: {
                 Accept: 'application/json',
-                Authorization: `Bearer ${token}`,
             },
+            credentials: 'include',
         }
     )
 
@@ -217,15 +210,15 @@ export async function getAdminDashboardSummary(token) {
     return response.json()
 }
 
-export async function getAdminTickets(token) {
+export async function getAdminTickets() {
     const response = await fetch(
         `${API_BASE_URL}/tickets/admin/all`,
         {
             method: 'GET',
             headers: {
                 Accept: 'application/json',
-                Authorization: `Bearer ${token}`,
             },
+            credentials: 'include',
         }
     )
 
@@ -237,16 +230,16 @@ export async function getAdminTickets(token) {
 
     const data = await response.json()
     const tickets = Array.isArray(data) ? data : data.items ?? []
+
     return tickets.map(normalizeTicket)
 }
 
-
-export async function getAdminAgents(token) {
+export async function getAdminAgents() {
     const response = await fetch(`${API_BASE_URL}/users/admin/agents`, {
         headers: {
             Accept: 'application/json',
-            Authorization: `Bearer ${token}`,
         },
+        credentials: 'include',
     })
 
     if (!response.ok) {
@@ -256,18 +249,19 @@ export async function getAdminAgents(token) {
     }
 
     const data = await response.json()
+
     return Array.isArray(data) ? data : data.items ?? []
 }
 
-export async function assignTicketToAgent(ticketId, agentId, token) {
+export async function assignTicketToAgent(ticketId, agentId) {
     const response = await fetch(
         `${API_BASE_URL}/tickets/${ticketId}/assign/${agentId}`,
         {
             method: 'PATCH',
             headers: {
                 Accept: 'application/json',
-                Authorization: `Bearer ${token}`,
             },
+            credentials: 'include',
         }
     )
 
@@ -280,15 +274,15 @@ export async function assignTicketToAgent(ticketId, agentId, token) {
     return response.json()
 }
 
-export async function deleteAdminTicket(ticketId, token) {
+export async function deleteAdminTicket(ticketId) {
     const response = await fetch(
         `${API_BASE_URL}/tickets/admin/${ticketId}`,
         {
             method: 'DELETE',
             headers: {
                 Accept: 'application/json',
-                Authorization: `Bearer ${token}`,
             },
+            credentials: 'include',
         }
     )
 
@@ -299,14 +293,14 @@ export async function deleteAdminTicket(ticketId, token) {
     }
 }
 
-export async function getAdminAgentPerformance(token) {
+export async function getAdminAgentPerformance() {
     const response = await fetch(
         `${API_BASE_URL}/tickets/admin/agent-performance`,
         {
             headers: {
                 Accept: 'application/json',
-                Authorization: `Bearer ${token}`,
             },
+            credentials: 'include',
         }
     )
 
@@ -319,14 +313,14 @@ export async function getAdminAgentPerformance(token) {
     return response.json()
 }
 
-export async function getAdminTrends(token) {
+export async function getAdminTrends() {
     const response = await fetch(
         `${API_BASE_URL}/tickets/admin/trends`,
         {
             headers: {
                 Accept: 'application/json',
-                Authorization: `Bearer ${token}`,
             },
+            credentials: 'include',
         }
     )
 
@@ -339,8 +333,7 @@ export async function getAdminTrends(token) {
     return response.json()
 }
 
-
-export async function updateAdminTicketStatus(ticketId, status, token) {
+export async function updateAdminTicketStatus(ticketId, status) {
     const response = await fetch(
         `${API_BASE_URL}/tickets/${ticketId}/admin-status`,
         {
@@ -348,8 +341,8 @@ export async function updateAdminTicketStatus(ticketId, status, token) {
             headers: {
                 Accept: 'application/json',
                 'Content-Type': 'application/json',
-                Authorization: `Bearer ${token}`,
             },
+            credentials: 'include',
             body: JSON.stringify({ status }),
         }
     )
