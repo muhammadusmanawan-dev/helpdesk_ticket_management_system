@@ -27,23 +27,28 @@ import './App.css'
 function App() {
   const queryClient = useQueryClient()
 
+  // Authentication state
   const [loginLoading, setLoginLoading] = useState(false)
   const [loginError, setLoginError] = useState('')
-  const [selectedTicket, setSelectedTicket] = useState(null)
-
-  const [createLoading, setCreateLoading] = useState(false)
-  const [createError, setCreateError] = useState('')
-  const [createSuccess, setCreateSuccess] = useState('')
-
   const [currentUser, setCurrentUser] = useState(null)
   const [userLoading, setUserLoading] = useState(true)
   const [userError, setUserError] = useState('')
 
+  // Selected ticket
+  const [selectedTicket, setSelectedTicket] = useState(null)
+
+  // Create ticket state
+  const [createLoading, setCreateLoading] = useState(false)
+  const [createError, setCreateError] = useState('')
+  const [createSuccess, setCreateSuccess] = useState('')
+
+  // Navigation state for each role
   const [activeAdminPage, setActiveAdminPage] = useState('Dashboard')
   const [activeAgentPage, setActiveAgentPage] = useState('Dashboard')
-  const [activeCustomerPage, setActiveCustomerPage] = useState('Dashboard')
+  const [activeCustomerPage, setActiveCustomerPage] =
+    useState('Dashboard')
 
-  // Load the current user from httpOnly session
+  // Load the current user using the HttpOnly session cookie
   async function loadCurrentUser() {
     setUserLoading(true)
     setUserError('')
@@ -54,7 +59,7 @@ function App() {
     } catch (error) {
       setCurrentUser(null)
 
-      // No valid session means the user needs to log in.
+      // A missing or invalid session should show the login form.
       if (
         error.message.includes('401') ||
         error.message.includes('403')
@@ -68,6 +73,7 @@ function App() {
     }
   }
 
+  // Check the existing session when the app starts.
   useEffect(() => {
     loadCurrentUser()
   }, [])
@@ -106,11 +112,10 @@ function App() {
     setUserError('')
 
     try {
-      // Cookie is set by the backend. Login does not return a token.
       await loginUser(email, password)
 
-      // Fetch the logged-in user's details using the new cookie.
       const user = await getCurrentUser()
+
       setCurrentUser(user)
       setSelectedTicket(null)
 
@@ -200,49 +205,29 @@ function App() {
     return updatedTicket
   }
 
-  // Show loading while checking whether a session cookie exists.
+  // Show loading while checking the session.
   if (userLoading) {
     return <p>Loading user...</p>
   }
 
-  // No authenticated user: show login.
+  // No authenticated user: use the reusable LoginForm component.
   if (!currentUser) {
-    if (userError) {
-      return (
-        <main className="login-page">
-          <div className="login-card">
-            <p className="api-error">{userError}</p>
-            <button
-              className="primary-button"
-              type="button"
-              onClick={loadCurrentUser}
-            >
-              Retry
-            </button>
-            <button
-              className="logout-button"
-              type="button"
-              onClick={() => setUserError('')}
-            >
-              Back to login
-            </button>
-          </div>
-        </main>
-      )
-    }
-
     return (
       <LoginForm
         onLogin={handleLogin}
         loading={loginLoading}
         error={loginError}
+        connectionError={userError}
+        onRetry={loadCurrentUser}
       />
     )
   }
 
+  // Determine the user's role.
   const isCustomer = currentUser.role === 'customer'
   const isAgent = currentUser.role === 'agent'
 
+  // Determine the active page for the current role.
   const activePage = isCustomer
     ? activeCustomerPage
     : isAgent
@@ -255,6 +240,7 @@ function App() {
       ? setActiveAgentPage
       : setActiveAdminPage
 
+  // Authenticated application layout
   return (
     <div className="app-layout">
       <Sidebar
@@ -267,11 +253,16 @@ function App() {
         <header className="topbar">
           <div>
             <p className="eyebrow">SUPPORT WORKSPACE</p>
-            <h1>{selectedTicket ? 'Ticket Details' : activePage}</h1>
+            <h1>
+              {selectedTicket
+                ? 'Ticket Details'
+                : activePage}
+            </h1>
           </div>
 
           <div className="topbar-user">
             <span>{currentUser.email}</span>
+
             <button
               className="logout-button"
               type="button"
