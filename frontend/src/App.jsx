@@ -242,29 +242,32 @@ function App() {
 
   // Authenticated application layout
   return (
-    <div className="app-layout">
+    <div className="min-h-screen text-slate-800">
       <Sidebar
         currentUser={currentUser}
         activePage={activePage}
         onNavigate={setActivePage}
       />
 
-      <main className="main-content">
-        <header className="topbar">
+      <main className="min-w-0 px-4 py-6 sm:px-6 min-[651px]:ml-[210px] min-[1001px]:ml-[250px] lg:px-9 lg:py-8">
+        <header className="flex flex-col gap-4 border-b border-slate-200 pb-6 sm:flex-row sm:items-center sm:justify-between">
           <div>
-            <p className="eyebrow">SUPPORT WORKSPACE</p>
-            <h1>
-              {selectedTicket
-                ? 'Ticket Details'
-                : activePage}
+            <p className="m-0 text-[11px] font-bold tracking-[1.1px] text-slate-400">
+              SUPPORT WORKSPACE
+            </p>
+
+            <h1 className="mt-2 text-2xl font-bold tracking-tight text-slate-800">
+              {selectedTicket ? 'Ticket Details' : activePage}
             </h1>
           </div>
 
-          <div className="topbar-user">
-            <span>{currentUser.email}</span>
+          <div className="flex items-center gap-3 text-sm font-semibold">
+            <span className="hidden text-slate-600 sm:inline">
+              {currentUser.email}
+            </span>
 
             <button
-              className="logout-button"
+              className="rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm font-medium text-slate-700 transition hover:bg-slate-50 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2"
               type="button"
               onClick={handleLogout}
             >
@@ -283,9 +286,9 @@ function App() {
           />
         ) : (
           <>
-            <section className="welcome-section">
+            <section className="my-7">
               <div>
-                <p className="eyebrow">
+                <p className="m-0 text-[11px] font-bold tracking-[1.1px] text-slate-400">
                   {isCustomer
                     ? 'CUSTOMER WORKSPACE'
                     : isAgent
@@ -293,9 +296,11 @@ function App() {
                       : 'ADMIN WORKSPACE'}
                 </p>
 
-                <h2>Welcome back!</h2>
+                <h2 className="my-2 text-2xl font-bold tracking-tight text-slate-800">
+                  Welcome back!
+                </h2>
 
-                <p>
+                <p className="m-0 text-sm text-slate-500">
                   {isCustomer
                     ? 'Here is an overview of your support tickets.'
                     : isAgent
@@ -340,9 +345,7 @@ function App() {
                 />
               )
             ) : activeAdminPage === 'Tickets' ? (
-              <AdminTickets
-                onViewDetails={setSelectedTicket}
-              />
+              <AdminTickets onViewDetails={setSelectedTicket} />
             ) : (
               <AdminDashboard />
             )}
