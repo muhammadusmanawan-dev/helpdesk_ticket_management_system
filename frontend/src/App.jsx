@@ -5,8 +5,15 @@ import Sidebar from './components/organisms/Sidebar'
 import LoginForm from './components/organisms/LoginForm'
 import TicketDetails from './components/organisms/TicketDetails'
 
-import { loginUser, getAccessToken, getCurrentUser, logoutUser } from './services/authService'
-import { getCustomerTickets, getAssignedTickets, createCustomerTicket, updateCustomerTicket, updateAssignedTicketStatus, updateAdminTicketStatus } from './services/ticketService'
+import { loginUser, getCurrentUser, logoutUser } from './services/authService'
+import {
+  getCustomerTickets,
+  getAssignedTickets,
+  createCustomerTicket,
+  updateCustomerTicket,
+  updateAssignedTicketStatus,
+  updateAdminTicketStatus,
+} from './services/ticketService'
 
 import AdminDashboard from './pages/admin/AdminDashboard'
 import AdminTickets from './pages/admin/AdminTickets'
@@ -20,60 +27,79 @@ import './App.css'
 function App() {
   const queryClient = useQueryClient()
 
-  const [token, setToken] = useState(() => getAccessToken())
-
+  // Authentication state
   const [loginLoading, setLoginLoading] = useState(false)
   const [loginError, setLoginError] = useState('')
-  const [selectedTicket, setSelectedTicket] = useState(null)
-
-  const [createLoading, setCreateLoading] = useState(false)
-  const [createError, setCreateError] = useState('')
-  const [createSuccess, setCreateSuccess] = useState('')
-
   const [currentUser, setCurrentUser] = useState(null)
   const [userLoading, setUserLoading] = useState(true)
   const [userError, setUserError] = useState('')
 
+  // Selected ticket
+  const [selectedTicket, setSelectedTicket] = useState(null)
+
+  // Create ticket state
+  const [createLoading, setCreateLoading] = useState(false)
+  const [createError, setCreateError] = useState('')
+  const [createSuccess, setCreateSuccess] = useState('')
+
+  // Navigation state for each role
   const [activeAdminPage, setActiveAdminPage] = useState('Dashboard')
   const [activeAgentPage, setActiveAgentPage] = useState('Dashboard')
-  const [activeCustomerPage, setActiveCustomerPage] = useState('Dashboard')
+  const [activeCustomerPage, setActiveCustomerPage] =
+    useState('Dashboard')
 
+  // Load the current user using the HttpOnly session cookie
+  async function loadCurrentUser() {
+    setUserLoading(true)
+    setUserError('')
 
-  // Customer: Retrieving Customer tickets
+    try {
+      const user = await getCurrentUser()
+      setCurrentUser(user)
+    } catch (error) {
+      setCurrentUser(null)
+
+      // A missing or invalid session should show the login form.
+      if (
+        error.message.includes('401') ||
+        error.message.includes('403')
+      ) {
+        setUserError('')
+      } else {
+        setUserError(error.message)
+      }
+    } finally {
+      setUserLoading(false)
+    }
+  }
+
+  // Check the existing session when the app starts.
+  useEffect(() => {
+    loadCurrentUser()
+  }, [])
+
+  // Customer tickets
   const {
     data: tickets = [],
     isLoading: ticketsLoading,
     error: ticketsQueryError,
   } = useQuery({
-    queryKey: ['customerTickets', token],
-    queryFn: async () => {
-      try {
-        return await getCustomerTickets(token)
-      } catch (error) {
-        if (error.message.includes('401')) {
-          logoutUser()
-          setToken(null)
-          setCurrentUser(null)
-          setSelectedTicket(null)
-        }
-
-        throw error
-      }
-    },
-    enabled: Boolean(token && currentUser?.role === 'customer'),
+    queryKey: ['customerTickets'],
+    queryFn: getCustomerTickets,
+    enabled: currentUser?.role === 'customer',
   })
 
   const ticketsError = ticketsQueryError?.message ?? ''
 
-  //Agent: Retrieving Tickets assigned to the logged-in agent
+  // Agent tickets
   const {
     data: assignedTickets = [],
     isLoading: assignedTicketsLoading,
     error: assignedTicketsQueryError,
   } = useQuery({
-    queryKey: ['assignedTickets', token],
-    queryFn: () => getAssignedTickets(token),
-    enabled: Boolean(token && currentUser?.role === 'agent'),
+    queryKey: ['assignedTickets'],
+    queryFn: getAssignedTickets,
+    enabled: currentUser?.role === 'agent',
   })
 
   const assignedTicketsError =
@@ -84,38 +110,42 @@ function App() {
     setLoginLoading(true)
     setLoginError('')
     setUserError('')
-    setUserLoading(true)
-    setCurrentUser(null)
 
     try {
-      const data = await loginUser(email, password)
-      setToken(data.access_token)
+      await loginUser(email, password)
+
+      const user = await getCurrentUser()
+
+      setCurrentUser(user)
+      setSelectedTicket(null)
+
+      await queryClient.invalidateQueries()
     } catch (error) {
+      setCurrentUser(null)
       setLoginError(error.message)
-      setUserLoading(false)
     } finally {
+      setUserLoading(false)
       setLoginLoading(false)
     }
   }
 
   // Logout
-  function handleLogout() {
-    logoutUser()
-    setToken(null)
-    setCurrentUser(null)
-    setUserLoading(false)
-    setUserError('')
-    setSelectedTicket(null)
-    setCreateError('')
-    setCreateSuccess('')
+  async function handleLogout() {
+    try {
+      await logoutUser()
+    } catch (error) {
+      console.error('Backend logout failed:', error)
+    } finally {
+      setCurrentUser(null)
+      setUserLoading(false)
+      setUserError('')
+      setLoginError('')
+      setSelectedTicket(null)
+      setCreateError('')
+      setCreateSuccess('')
 
-    queryClient.removeQueries({
-      queryKey: ['customerTickets'],
-    })
-
-    queryClient.removeQueries({
-      queryKey: ['assignedTickets'],
-    })
+      queryClient.clear()
+    }
   }
 
   // Customer creates a ticket
@@ -125,10 +155,10 @@ function App() {
     setCreateSuccess('')
 
     try {
-      await createCustomerTicket(ticketData, token)
+      await createCustomerTicket(ticketData)
 
       await queryClient.invalidateQueries({
-        queryKey: ['customerTickets', token],
+        queryKey: ['customerTickets'],
       })
 
       setCreateSuccess('Ticket created successfully!')
@@ -141,38 +171,19 @@ function App() {
     }
   }
 
-  // Customer updates ticket information
+  // Admin or agent updates ticket status
   async function handleStatusUpdated(ticketId, status) {
     let updatedTicket
 
     if (currentUser.role === 'admin') {
-      updatedTicket = await updateAdminTicketStatus(
-        ticketId,
-        status,
-        token
-      )
+      updatedTicket = await updateAdminTicketStatus(ticketId, status)
     } else if (currentUser.role === 'agent') {
-      updatedTicket = await updateAssignedTicketStatus(
-        ticketId,
-        status,
-        token
-      )
+      updatedTicket = await updateAssignedTicketStatus(ticketId, status)
     } else {
       throw new Error('You are not allowed to update ticket status.')
     }
 
-    await queryClient.invalidateQueries({
-      queryKey: ['adminTickets', token],
-    })
-
-    await queryClient.invalidateQueries({
-      queryKey: ['assignedTickets', token],
-    })
-
-    await queryClient.invalidateQueries({
-      queryKey: ['customerTickets', token],
-    })
-
+    await queryClient.invalidateQueries()
     setSelectedTicket(updatedTicket)
 
     return updatedTicket
@@ -182,12 +193,11 @@ function App() {
   async function handleUpdateTicket(ticketId, ticketData) {
     const updatedTicket = await updateCustomerTicket(
       ticketId,
-      ticketData,
-      token
+      ticketData
     )
 
     await queryClient.invalidateQueries({
-      queryKey: ['customerTickets', token],
+      queryKey: ['customerTickets'],
     })
 
     setSelectedTicket(updatedTicket)
@@ -195,86 +205,29 @@ function App() {
     return updatedTicket
   }
 
-  // Load logged-in user's information
-  useEffect(() => {
-    if (!token) {
-      return
-    }
+  // Show loading while checking the session.
+  if (userLoading) {
+    return <p>Loading user...</p>
+  }
 
-    let cancelled = false
-
-    async function loadCurrentUser() {
-      setUserLoading(true)
-      setUserError('')
-
-      try {
-        const user = await getCurrentUser(token)
-
-        if (!cancelled) {
-          setCurrentUser(user)
-        }
-      } catch (error) {
-        if (!cancelled) {
-          setUserError(error.message)
-          setCurrentUser(null)
-
-          if (error.message.includes('401')) {
-            logoutUser()
-            setToken(null)
-          }
-        }
-      } finally {
-        if (!cancelled) {
-          setUserLoading(false)
-        }
-      }
-    }
-
-    loadCurrentUser()
-
-    return () => {
-      cancelled = true
-    }
-  }, [token])
-
-  // if token is not already availble (user havent logged in)
-  if (!token) {
+  // No authenticated user: use the reusable LoginForm component.
+  if (!currentUser) {
     return (
       <LoginForm
         onLogin={handleLogin}
         loading={loginLoading}
         error={loginError}
+        connectionError={userError}
+        onRetry={loadCurrentUser}
       />
     )
   }
 
-  if (userLoading) {
-    return <p>Loading user...</p>
-  }
-
-  if (userError || !currentUser) {
-    return (
-      <div className="app-layout">
-        <main className="main-content">
-          <p className="api-error">
-            {userError || 'Could not load user information.'}
-          </p>
-
-          <button
-            className="logout-button"
-            type="button"
-            onClick={handleLogout}
-          >
-            Log out
-          </button>
-        </main>
-      </div>
-    )
-  }
-
+  // Determine the user's role.
   const isCustomer = currentUser.role === 'customer'
   const isAgent = currentUser.role === 'agent'
 
+  // Determine the active page for the current role.
   const activePage = isCustomer
     ? activeCustomerPage
     : isAgent
@@ -286,6 +239,8 @@ function App() {
     : isAgent
       ? setActiveAgentPage
       : setActiveAdminPage
+
+  // Authenticated application layout
   return (
     <div className="app-layout">
       <Sidebar
@@ -298,7 +253,11 @@ function App() {
         <header className="topbar">
           <div>
             <p className="eyebrow">SUPPORT WORKSPACE</p>
-            <h1>{selectedTicket ? 'Ticket Details' : activePage}</h1>
+            <h1>
+              {selectedTicket
+                ? 'Ticket Details'
+                : activePage}
+            </h1>
           </div>
 
           <div className="topbar-user">
@@ -317,7 +276,6 @@ function App() {
         {selectedTicket ? (
           <TicketDetails
             ticket={selectedTicket}
-            token={token}
             currentUser={currentUser}
             onBack={() => setSelectedTicket(null)}
             onTicketUpdated={handleUpdateTicket}
@@ -383,11 +341,10 @@ function App() {
               )
             ) : activeAdminPage === 'Tickets' ? (
               <AdminTickets
-                token={token}
                 onViewDetails={setSelectedTicket}
               />
             ) : (
-              <AdminDashboard token={token} />
+              <AdminDashboard />
             )}
           </>
         )}

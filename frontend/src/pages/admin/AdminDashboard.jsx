@@ -32,7 +32,7 @@ const STATUS_COLORS = [
 const chartCard =
     'rounded-2xl border border-slate-200 bg-white p-5 shadow-sm'
 
-function AdminDashboard({ token }) {
+function AdminDashboard() {
     const {
         data: summary,
         isLoading: summaryLoading,
@@ -40,9 +40,9 @@ function AdminDashboard({ token }) {
         refetch: refetchSummary,
         isFetching: summaryFetching,
     } = useQuery({
-        queryKey: ['adminDashboardSummary', token],
-        queryFn: () => getAdminDashboardSummary(token),
-        enabled: Boolean(token),
+        queryKey: ['adminDashboardSummary'],
+        queryFn: getAdminDashboardSummary,
+        enabled: true,
     })
 
     const {
@@ -51,9 +51,9 @@ function AdminDashboard({ token }) {
         error: agentsError,
         refetch: refetchAgents,
     } = useQuery({
-        queryKey: ['adminAgentPerformance', token],
-        queryFn: () => getAdminAgentPerformance(token),
-        enabled: Boolean(token),
+        queryKey: ['adminAgentPerformance'],
+        queryFn: getAdminAgentPerformance,
+        enabled: true,
     })
 
     const {
@@ -62,9 +62,9 @@ function AdminDashboard({ token }) {
         error: trendsError,
         refetch: refetchTrends,
     } = useQuery({
-        queryKey: ['adminTicketTrends', token],
-        queryFn: () => getAdminTrends(token),
-        enabled: Boolean(token),
+        queryKey: ['adminTicketTrends'],
+        queryFn: getAdminTrends,
+        enabled: true,
     })
 
     const statusData = [

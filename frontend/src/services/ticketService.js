@@ -1,4 +1,4 @@
-const API_BASE_URL = 'http://127.0.0.1:8000'
+import { apiClient } from './apiClient'
 
 function normalizeTicket(ticket) {
     return {
@@ -19,346 +19,100 @@ function normalizeTicket(ticket) {
     }
 }
 
-async function getErrorMessage(response) {
-    try {
-        const data = await response.json()
-
-        if (typeof data.detail === 'string') {
-            return data.detail
-        }
-
-        return JSON.stringify(data.detail ?? data)
-    } catch {
-        return `Request failed: ${response.status}`
-    }
-}
-
-export async function getCustomerTickets(token) {
-    const response = await fetch(
-        `${API_BASE_URL}/tickets/?page=1&size=50`,
-        {
-            method: 'GET',
-            headers: {
-                Accept: 'application/json',
-                Authorization: `Bearer ${token}`,
-            },
-        }
-    )
-
-    if (!response.ok) {
-        throw new Error(
-            `Failed to fetch tickets: ${response.status} - ${await getErrorMessage(response)
-            }`
-        )
-    }
-
-    const data = await response.json()
+export async function getCustomerTickets() {
+    const data = await apiClient('/tickets/', {
+        params: { page: 1, size: 50 },
+    })
 
     return data.items.map(normalizeTicket)
 }
 
-export async function createCustomerTicket(ticketData, token) {
-    const response = await fetch(`${API_BASE_URL}/tickets/`, {
+export async function createCustomerTicket(ticketData) {
+    const data = await apiClient('/tickets/', {
         method: 'POST',
-        headers: {
-            Accept: 'application/json',
-            'Content-Type': 'application/json',
-            Authorization: `Bearer ${token}`,
-        },
-        body: JSON.stringify(ticketData),
+        body: ticketData,
     })
 
-    if (!response.ok) {
-        throw new Error(
-            `Failed to create ticket: ${response.status} - ${await getErrorMessage(response)
-            }`
-        )
-    }
+    return normalizeTicket(data)
+}
 
-    const data = await response.json()
+export async function getTicketComments(ticketId) {
+    return apiClient(`/tickets/${ticketId}/comments`)
+}
+
+export async function createTicketComment(ticketId, content) {
+    return apiClient(`/tickets/${ticketId}/comments`, {
+        method: 'POST',
+        body: { content },
+    })
+}
+
+export async function updateCustomerTicket(ticketId, ticketData) {
+    const data = await apiClient(`/tickets/${ticketId}`, {
+        method: 'PATCH',
+        body: ticketData,
+    })
 
     return normalizeTicket(data)
 }
 
-export async function getTicketComments(ticketId, token) {
-    const response = await fetch(
-        `${API_BASE_URL}/tickets/${ticketId}/comments`,
-        {
-            method: 'GET',
-            headers: {
-                Accept: 'application/json',
-                Authorization: `Bearer ${token}`,
-            },
-        }
-    )
-
-    if (!response.ok) {
-        throw new Error(
-            `Failed to fetch comments: ${response.status} - ${await getErrorMessage(response)}`
-        )
-    }
-
-    return response.json()
-}
-
-export async function createTicketComment(ticketId, content, token) {
-    const response = await fetch(
-        `${API_BASE_URL}/tickets/${ticketId}/comments`,
-        {
-            method: 'POST',
-            headers: {
-                Accept: 'application/json',
-                'Content-Type': 'application/json',
-                Authorization: `Bearer ${token}`,
-            },
-            body: JSON.stringify({ content }),
-        }
-    )
-
-    if (!response.ok) {
-        throw new Error(
-            `Failed to add comment: ${response.status} - ${await getErrorMessage(response)}`
-        )
-    }
-
-    return response.json()
-}
-
-export async function updateCustomerTicket(ticketId, ticketData, token) {
-    const response = await fetch(
-        `${API_BASE_URL}/tickets/${ticketId}`,
-        {
-            method: 'PATCH',
-            headers: {
-                Accept: 'application/json',
-                'Content-Type': 'application/json',
-                Authorization: `Bearer ${token}`,
-            },
-            body: JSON.stringify(ticketData),
-        }
-    )
-
-    if (!response.ok) {
-        throw new Error(
-            `Failed to update ticket: ${response.status} - ${await getErrorMessage(response)}`
-        )
-    }
-
-    const data = await response.json()
-
-    return normalizeTicket(data)
-}
-
-export async function getAssignedTickets(token) {
-    const response = await fetch(
-        `${API_BASE_URL}/tickets/assigned`,
-        {
-            method: 'GET',
-            headers: {
-                Accept: 'application/json',
-                Authorization: `Bearer ${token}`,
-            },
-        }
-    )
-
-    if (!response.ok) {
-        throw new Error(
-            `Failed to fetch assigned tickets: ${response.status} - ${await getErrorMessage(response)}`
-        )
-    }
-
-    const data = await response.json()
+export async function getAssignedTickets() {
+    const data = await apiClient('/tickets/assigned')
 
     return data.map(normalizeTicket)
 }
 
-export async function updateAssignedTicketStatus(ticketId, status, token) {
-    const response = await fetch(
-        `${API_BASE_URL}/tickets/${ticketId}/status`,
-        {
-            method: 'PATCH',
-            headers: {
-                Accept: 'application/json',
-                'Content-Type': 'application/json',
-                Authorization: `Bearer ${token}`,
-            },
-            body: JSON.stringify({ status }),
-        }
-    )
+export async function updateAssignedTicketStatus(ticketId, status) {
+    const data = await apiClient(`/tickets/${ticketId}/status`, {
+        method: 'PATCH',
+        body: { status },
+    })
 
-    if (!response.ok) {
-        throw new Error(
-            `Failed to update ticket status: ${response.status} - ${await getErrorMessage(response)}`
-        )
-    }
-
-    return normalizeTicket(await response.json())
+    return normalizeTicket(data)
 }
 
-
-export async function getAdminDashboardSummary(token) {
-    const response = await fetch(
-        `${API_BASE_URL}/tickets/admin/dashboard-summary`,
-        {
-            method: 'GET',
-            headers: {
-                Accept: 'application/json',
-                Authorization: `Bearer ${token}`,
-            },
-        }
-    )
-
-    if (!response.ok) {
-        throw new Error(
-            `Failed to fetch admin dashboard: ${response.status} - ${await getErrorMessage(response)}`
-        )
-    }
-
-    return response.json()
+export async function getAdminDashboardSummary() {
+    return apiClient('/tickets/admin/dashboard-summary')
 }
 
-export async function getAdminTickets(token) {
-    const response = await fetch(
-        `${API_BASE_URL}/tickets/admin/all`,
-        {
-            method: 'GET',
-            headers: {
-                Accept: 'application/json',
-                Authorization: `Bearer ${token}`,
-            },
-        }
-    )
-
-    if (!response.ok) {
-        throw new Error(
-            `Failed to fetch admin tickets: ${response.status} - ${await getErrorMessage(response)}`
-        )
-    }
-
-    const data = await response.json()
+export async function getAdminTickets() {
+    const data = await apiClient('/tickets/admin/all')
     const tickets = Array.isArray(data) ? data : data.items ?? []
+
     return tickets.map(normalizeTicket)
 }
 
+export async function getAdminAgents() {
+    const data = await apiClient('/users/admin/agents')
 
-export async function getAdminAgents(token) {
-    const response = await fetch(`${API_BASE_URL}/users/admin/agents`, {
-        headers: {
-            Accept: 'application/json',
-            Authorization: `Bearer ${token}`,
-        },
-    })
-
-    if (!response.ok) {
-        throw new Error(
-            `Failed to fetch agents: ${response.status} - ${await getErrorMessage(response)}`
-        )
-    }
-
-    const data = await response.json()
     return Array.isArray(data) ? data : data.items ?? []
 }
 
-export async function assignTicketToAgent(ticketId, agentId, token) {
-    const response = await fetch(
-        `${API_BASE_URL}/tickets/${ticketId}/assign/${agentId}`,
-        {
-            method: 'PATCH',
-            headers: {
-                Accept: 'application/json',
-                Authorization: `Bearer ${token}`,
-            },
-        }
-    )
-
-    if (!response.ok) {
-        throw new Error(
-            `Failed to assign ticket: ${response.status} - ${await getErrorMessage(response)}`
-        )
-    }
-
-    return response.json()
+export async function assignTicketToAgent(ticketId, agentId) {
+    return apiClient(`/tickets/${ticketId}/assign/${agentId}`, {
+        method: 'PATCH',
+    })
 }
 
-export async function deleteAdminTicket(ticketId, token) {
-    const response = await fetch(
-        `${API_BASE_URL}/tickets/admin/${ticketId}`,
-        {
-            method: 'DELETE',
-            headers: {
-                Accept: 'application/json',
-                Authorization: `Bearer ${token}`,
-            },
-        }
-    )
-
-    if (!response.ok) {
-        throw new Error(
-            `Failed to delete ticket: ${response.status} - ${await getErrorMessage(response)}`
-        )
-    }
+export async function deleteAdminTicket(ticketId) {
+    return apiClient(`/tickets/admin/${ticketId}`, {
+        method: 'DELETE',
+    })
 }
 
-export async function getAdminAgentPerformance(token) {
-    const response = await fetch(
-        `${API_BASE_URL}/tickets/admin/agent-performance`,
-        {
-            headers: {
-                Accept: 'application/json',
-                Authorization: `Bearer ${token}`,
-            },
-        }
-    )
-
-    if (!response.ok) {
-        throw new Error(
-            `Failed to fetch agent performance: ${response.status} - ${await getErrorMessage(response)}`
-        )
-    }
-
-    return response.json()
+export async function getAdminAgentPerformance() {
+    return apiClient('/tickets/admin/agent-performance')
 }
 
-export async function getAdminTrends(token) {
-    const response = await fetch(
-        `${API_BASE_URL}/tickets/admin/trends`,
-        {
-            headers: {
-                Accept: 'application/json',
-                Authorization: `Bearer ${token}`,
-            },
-        }
-    )
-
-    if (!response.ok) {
-        throw new Error(
-            `Failed to fetch ticket trends: ${response.status} - ${await getErrorMessage(response)}`
-        )
-    }
-
-    return response.json()
+export async function getAdminTrends() {
+    return apiClient('/tickets/admin/trends')
 }
 
+export async function updateAdminTicketStatus(ticketId, status) {
+    const data = await apiClient(`/tickets/${ticketId}/admin-status`, {
+        method: 'PATCH',
+        body: { status },
+    })
 
-export async function updateAdminTicketStatus(ticketId, status, token) {
-    const response = await fetch(
-        `${API_BASE_URL}/tickets/${ticketId}/admin-status`,
-        {
-            method: 'PATCH',
-            headers: {
-                Accept: 'application/json',
-                'Content-Type': 'application/json',
-                Authorization: `Bearer ${token}`,
-            },
-            body: JSON.stringify({ status }),
-        }
-    )
-
-    if (!response.ok) {
-        throw new Error(
-            `Failed to update ticket status: ${response.status} - ${await getErrorMessage(response)}`
-        )
-    }
-
-    return normalizeTicket(await response.json())
+    return normalizeTicket(data)
 }

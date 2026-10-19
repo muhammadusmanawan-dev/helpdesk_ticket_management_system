@@ -10,7 +10,7 @@ import {
     deleteAdminTicket,
 } from '../../services/ticketService'
 
-function AdminTickets({ token, onViewDetails }) {
+function AdminTickets({ onViewDetails }) {
     const queryClient = useQueryClient()
     const [search, setSearch] = useState('')
     const [actionError, setActionError] = useState('')
@@ -20,9 +20,9 @@ function AdminTickets({ token, onViewDetails }) {
         isLoading: ticketsLoading,
         error: ticketsError,
     } = useQuery({
-        queryKey: ['adminTickets', token],
-        queryFn: () => getAdminTickets(token),
-        enabled: Boolean(token),
+        queryKey: ['adminTickets'],
+        queryFn: getAdminTickets,
+        enabled: true,
     })
 
     const {
@@ -30,31 +30,32 @@ function AdminTickets({ token, onViewDetails }) {
         isLoading: agentsLoading,
         error: agentsError,
     } = useQuery({
-        queryKey: ['adminAgents', token],
-        queryFn: () => getAdminAgents(token),
-        enabled: Boolean(token),
+        queryKey: ['adminAgents'],
+        queryFn: getAdminAgents,
+        enabled: true,
     })
 
     async function refreshAdminData() {
         await Promise.all([
             queryClient.invalidateQueries({
-                queryKey: ['adminTickets', token],
+                queryKey: ['adminTickets'],
             }),
+
             queryClient.invalidateQueries({
-                queryKey: ['adminDashboardSummary', token],
-            }),
+                queryKey: ['adminDashboardSummary'],
+            })
         ])
     }
 
     const assignMutation = useMutation({
         mutationFn: ({ ticketId, agentId }) =>
-            assignTicketToAgent(ticketId, agentId, token),
+            assignTicketToAgent(ticketId, agentId),
         onSuccess: refreshAdminData,
         onError: (error) => setActionError(error.message),
     })
 
     const deleteMutation = useMutation({
-        mutationFn: (ticketId) => deleteAdminTicket(ticketId, token),
+        mutationFn: (ticketId) => deleteAdminTicket(ticketId),
         onSuccess: refreshAdminData,
         onError: (error) => setActionError(error.message),
     })

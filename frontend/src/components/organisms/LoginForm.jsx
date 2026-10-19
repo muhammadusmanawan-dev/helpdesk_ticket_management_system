@@ -1,13 +1,46 @@
-
 import { useState } from 'react'
 
-function LoginForm({ onLogin, loading, error }) {
+function LoginForm({
+    onLogin,
+    loading = false,
+    error = '',
+    connectionError = '',
+    onRetry,
+}) {
     const [email, setEmail] = useState('')
     const [password, setPassword] = useState('')
 
     function handleSubmit(event) {
         event.preventDefault()
         onLogin(email, password)
+    }
+
+    if (connectionError) {
+        return (
+            <main className="login-page">
+                <div className="login-card">
+                    <p className="eyebrow">SUPPORT WORKSPACE</p>
+                    <h1>Connection problem</h1>
+                    <p className="api-error">{connectionError}</p>
+
+                    <button
+                        className="primary-button"
+                        type="button"
+                        onClick={onRetry}
+                    >
+                        Retry
+                    </button>
+
+                    <button
+                        className="logout-button"
+                        type="button"
+                        onClick={() => window.location.reload()}
+                    >
+                        Back to login
+                    </button>
+                </div>
+            </main>
+        )
     }
 
     return (
@@ -21,6 +54,7 @@ function LoginForm({ onLogin, loading, error }) {
                 <input
                     id="email"
                     type="email"
+                    autoComplete="username"
                     value={email}
                     onChange={(event) => setEmail(event.target.value)}
                     placeholder="you@example.com"
@@ -31,6 +65,7 @@ function LoginForm({ onLogin, loading, error }) {
                 <input
                     id="password"
                     type="password"
+                    autoComplete="current-password"
                     value={password}
                     onChange={(event) => setPassword(event.target.value)}
                     placeholder="Enter your password"
