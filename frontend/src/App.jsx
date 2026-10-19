@@ -119,7 +119,6 @@ function App() {
       setCurrentUser(user)
       setSelectedTicket(null)
 
-      await queryClient.invalidateQueries()
     } catch (error) {
       setCurrentUser(null)
       setLoginError(error.message)
@@ -183,7 +182,23 @@ function App() {
       throw new Error('You are not allowed to update ticket status.')
     }
 
-    await queryClient.invalidateQueries()
+    await Promise.all([
+      queryClient.invalidateQueries({
+        queryKey: ['customerTickets'],
+      }),
+      queryClient.invalidateQueries({
+        queryKey: ['assignedTickets'],
+      }),
+      queryClient.invalidateQueries({
+        queryKey: ['adminDashboardSummary'],
+      }),
+      queryClient.invalidateQueries({
+        queryKey: ['adminAgentPerformance'],
+      }),
+      queryClient.invalidateQueries({
+        queryKey: ['adminTicketTrends'],
+      }),
+    ])
     setSelectedTicket(updatedTicket)
 
     return updatedTicket
