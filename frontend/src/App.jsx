@@ -15,12 +15,7 @@ import {
   updateAdminTicketStatus,
 } from './services/ticketService'
 
-import AdminDashboard from './pages/admin/AdminDashboard'
-import AdminTickets from './pages/admin/AdminTickets'
-import AgentDashboard from './pages/agent/AgentDashboard'
-import AgentTickets from './pages/agent/AgentTickets'
-import CustomerDashboard from './pages/customer/CustomerDashboard'
-import CustomerTickets from './pages/customer/CustomerTickets'
+import RoleWorkspace from './components/sections/RoleWorkspace'
 
 import './App.css'
 
@@ -325,47 +320,24 @@ function App() {
               </div>
             </section>
 
-            {isCustomer ? (
-              activeCustomerPage === 'My Tickets' ? (
-                <CustomerTickets
-                  tickets={tickets}
-                  loading={ticketsLoading}
-                  error={ticketsError}
-                  onCreate={handleCreateTicket}
-                  createLoading={createLoading}
-                  createError={createError}
-                  createSuccess={createSuccess}
-                  onViewDetails={setSelectedTicket}
-                />
-              ) : (
-                <CustomerDashboard
-                  tickets={tickets}
-                  loading={ticketsLoading}
-                  error={ticketsError}
-                />
-              )
-            ) : isAgent ? (
-              activeAgentPage === 'My Tickets' ? (
-                <AgentTickets
-                  assignedTickets={assignedTickets}
-                  loading={assignedTicketsLoading}
-                  error={assignedTicketsError}
-                  onViewDetails={setSelectedTicket}
-                />
-              ) : (
-                <AgentDashboard
-                  assignedTickets={assignedTickets}
-                  loading={assignedTicketsLoading}
-                  error={assignedTicketsError}
-                />
-              )
-            ) : activeAdminPage === 'Tickets' ? (
-              <AdminTickets onViewDetails={setSelectedTicket} />
-            ) : (
-              <AdminDashboard />
-            )}
+            <RoleWorkspace
+              currentUser={currentUser}
+              activePage={activePage}
+              tickets={tickets}
+              ticketsLoading={ticketsLoading}
+              ticketsError={ticketsError}
+              assignedTickets={assignedTickets}
+              assignedTicketsLoading={assignedTicketsLoading}
+              assignedTicketsError={assignedTicketsError}
+              onCreateTicket={handleCreateTicket}
+              createLoading={createLoading}
+              createError={createError}
+              createSuccess={createSuccess}
+              onViewDetails={setSelectedTicket}
+            />
           </>
         )}
+
       </main>
     </div>
   )
