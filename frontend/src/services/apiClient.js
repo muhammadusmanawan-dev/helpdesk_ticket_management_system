@@ -74,7 +74,10 @@ export async function apiClient(
 
     if (!response.ok) {
         throw new Error(
-            `${getErrorMessage(data, response.status)}`
+            `HTTP ${response.status}: ${getErrorMessage(
+                data,
+                response.status
+            )}`
         )
     }
 

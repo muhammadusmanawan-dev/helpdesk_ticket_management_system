@@ -18,14 +18,16 @@ function TicketDetails({ ticket, currentUser, onBack, onTicketUpdated, onStatusU
     const statusOptions = isAdmin
         ? {
             open: ['assigned'],
-            assigned: ['open', 'in_progress'],
-            in_progress: ['open', 'assigned', 'resolved'],
-            resolved: ['open', 'assigned', 'in_progress', 'closed'],
-            closed: ['open'],
+            assigned: ['in_progress'],
+            in_progress: ['resolved'],
+            resolved: ['closed'],
+            closed: [],
         }
         : {
             assigned: ['in_progress'],
             in_progress: ['resolved'],
+            resolved: [],
+            closed: [],
         }
 
     const availableStatuses = statusOptions[currentStatus] ?? []
@@ -54,7 +56,7 @@ function TicketDetails({ ticket, currentUser, onBack, onTicketUpdated, onStatusU
     const [editError, setEditError] = useState('')
     const [editSuccess, setEditSuccess] = useState('')
 
-    const [statusValue, setStatusValue] = useState(ticket.status.toLowerCase().replaceAll(' ', '_'))
+    const [statusValue, setStatusValue] = useState(currentStatus)
     const [statusSaving, setStatusSaving] = useState(false)
     const [statusError, setStatusError] = useState('')
     const [statusSuccess, setStatusSuccess] = useState('')
@@ -63,13 +65,13 @@ function TicketDetails({ ticket, currentUser, onBack, onTicketUpdated, onStatusU
         setEditTitle(ticket.title)
         setEditDescription(ticket.description ?? '')
         setEditPriority(ticket.priority.toLowerCase())
-        setStatusValue(ticket.status.toLowerCase().replaceAll(' ', '_'))
+        setStatusValue(currentStatus)
         setIsEditing(false)
         setEditError('')
         setEditSuccess('')
         setStatusError('')
         setStatusSuccess('')
-    }, [ticket.id, ticket.title, ticket.description, ticket.priority, ticket.status])
+    }, [ticket.id, ticket.title, ticket.description, ticket.priority, currentStatus])
 
     function formatDate(date) {
         if (!date) {
@@ -108,7 +110,7 @@ function TicketDetails({ ticket, currentUser, onBack, onTicketUpdated, onStatusU
 
         onSuccess: () => {
             queryClient.invalidateQueries({
-                queryKey: ['ticketComments', ticket.id, token],
+                queryKey: ['ticketComments', ticket.id],
             })
 
             setContent('')
@@ -143,9 +145,7 @@ function TicketDetails({ ticket, currentUser, onBack, onTicketUpdated, onStatusU
         setStatusError('')
         setStatusSuccess('')
 
-        if (newStatus === ticket.status.toLowerCase().replaceAll(' ', '_')) {
-            return
-        }
+        if (newStatus === currentStatus) return
 
         setStatusSaving(true)
 
@@ -153,9 +153,7 @@ function TicketDetails({ ticket, currentUser, onBack, onTicketUpdated, onStatusU
             await onStatusUpdated(ticket.id, newStatus)
             setStatusSuccess('Ticket status updated successfully!')
         } catch (error) {
-            setStatusValue(
-                ticket.status.toLowerCase().replaceAll(' ', '_')
-            )
+            setStatusValue(currentStatus)
             setStatusError(error.message)
         } finally {
             setStatusSaving(false)
