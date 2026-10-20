@@ -1,11 +1,13 @@
-import { useEffect, useState } from 'react'
+import { useState } from 'react'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
 
 import Sidebar from './components/organisms/Sidebar'
 import LoginForm from './components/organisms/LoginForm'
 import TicketDetails from './components/organisms/TicketDetails'
+import RoleWorkspace from './components/sections/RoleWorkspace'
 
-import { loginUser, getCurrentUser, logoutUser } from './services/authService'
+import useAuth from './hooks/useAuth'
+
 import {
   getCustomerTickets,
   getAssignedTickets,
@@ -15,65 +17,33 @@ import {
   updateAdminTicketStatus,
 } from './services/ticketService'
 
-import RoleWorkspace from './components/sections/RoleWorkspace'
-
 import './App.css'
 
 function App() {
   const queryClient = useQueryClient()
 
-  // Authentication state
-  const [loginLoading, setLoginLoading] = useState(false)
-  const [loginError, setLoginError] = useState('')
-  const [currentUser, setCurrentUser] = useState(null)
-  const [userLoading, setUserLoading] = useState(true)
-  const [userError, setUserError] = useState('')
+  const {
+    currentUser,
+    userLoading,
+    userError,
+    loginLoading,
+    loginError,
+    loadCurrentUser,
+    handleLogin,
+    handleLogout,
+  } = useAuth()
 
-  // Selected ticket
   const [selectedTicket, setSelectedTicket] = useState(null)
 
-  // Create ticket state
   const [createLoading, setCreateLoading] = useState(false)
   const [createError, setCreateError] = useState('')
   const [createSuccess, setCreateSuccess] = useState('')
 
-  // Navigation state for each role
   const [activeAdminPage, setActiveAdminPage] = useState('Dashboard')
   const [activeAgentPage, setActiveAgentPage] = useState('Dashboard')
-  const [activeCustomerPage, setActiveCustomerPage] =
-    useState('Dashboard')
+  const [activeCustomerPage, setActiveCustomerPage] = useState('Dashboard')
 
-  // Load the current user using the HttpOnly session cookie
-  async function loadCurrentUser() {
-    setUserLoading(true)
-    setUserError('')
-
-    try {
-      const user = await getCurrentUser()
-      setCurrentUser(user)
-    } catch (error) {
-      setCurrentUser(null)
-
-      // A missing or invalid session should show the login form.
-      if (
-        error.message.includes('401') ||
-        error.message.includes('403')
-      ) {
-        setUserError('')
-      } else {
-        setUserError(error.message)
-      }
-    } finally {
-      setUserLoading(false)
-    }
-  }
-
-  // Check the existing session when the app starts.
-  useEffect(() => {
-    loadCurrentUser()
-  }, [])
-
-  // Customer tickets
+  // Fetch customer tickets.
   const {
     data: tickets = [],
     isLoading: ticketsLoading,
@@ -86,7 +56,7 @@ function App() {
 
   const ticketsError = ticketsQueryError?.message ?? ''
 
-  // Agent tickets
+  // Fetch assigned agent tickets.
   const {
     data: assignedTickets = [],
     isLoading: assignedTicketsLoading,
@@ -100,49 +70,7 @@ function App() {
   const assignedTicketsError =
     assignedTicketsQueryError?.message ?? ''
 
-  // Login
-  async function handleLogin(email, password) {
-    setLoginLoading(true)
-    setLoginError('')
-    setUserError('')
-
-    try {
-      await loginUser(email, password)
-
-      const user = await getCurrentUser()
-
-      setCurrentUser(user)
-      setSelectedTicket(null)
-
-    } catch (error) {
-      setCurrentUser(null)
-      setLoginError(error.message)
-    } finally {
-      setUserLoading(false)
-      setLoginLoading(false)
-    }
-  }
-
-  // Logout
-  async function handleLogout() {
-    try {
-      await logoutUser()
-    } catch (error) {
-      console.error('Backend logout failed:', error)
-    } finally {
-      setCurrentUser(null)
-      setUserLoading(false)
-      setUserError('')
-      setLoginError('')
-      setSelectedTicket(null)
-      setCreateError('')
-      setCreateSuccess('')
-
-      queryClient.clear()
-    }
-  }
-
-  // Customer creates a ticket
+  // Customer creates a ticket.
   async function handleCreateTicket(ticketData) {
     setCreateLoading(true)
     setCreateError('')
@@ -165,7 +93,7 @@ function App() {
     }
   }
 
-  // Admin or agent updates ticket status
+  // Admin or agent updates ticket status.
   async function handleStatusUpdated(ticketId, status) {
     let updatedTicket
 
@@ -178,28 +106,18 @@ function App() {
     }
 
     await Promise.all([
-      queryClient.invalidateQueries({
-        queryKey: ['customerTickets'],
-      }),
-      queryClient.invalidateQueries({
-        queryKey: ['assignedTickets'],
-      }),
-      queryClient.invalidateQueries({
-        queryKey: ['adminDashboardSummary'],
-      }),
-      queryClient.invalidateQueries({
-        queryKey: ['adminAgentPerformance'],
-      }),
-      queryClient.invalidateQueries({
-        queryKey: ['adminTicketTrends'],
-      }),
+      queryClient.invalidateQueries({ queryKey: ['customerTickets'] }),
+      queryClient.invalidateQueries({ queryKey: ['assignedTickets'] }),
+      queryClient.invalidateQueries({ queryKey: ['adminDashboardSummary'] }),
+      queryClient.invalidateQueries({ queryKey: ['adminAgentPerformance'] }),
+      queryClient.invalidateQueries({ queryKey: ['adminTicketTrends'] }),
     ])
-    setSelectedTicket(updatedTicket)
 
+    setSelectedTicket(updatedTicket)
     return updatedTicket
   }
 
-  // Customer updates ticket information
+  // Customer updates ticket information.
   async function handleUpdateTicket(ticketId, ticketData) {
     const updatedTicket = await updateCustomerTicket(
       ticketId,
@@ -211,16 +129,24 @@ function App() {
     })
 
     setSelectedTicket(updatedTicket)
-
     return updatedTicket
   }
 
-  // Show loading while checking the session.
+  // Preserve application cleanup when logging out.
+  async function handleAppLogout() {
+    await handleLogout()
+
+    setSelectedTicket(null)
+    setCreateError('')
+    setCreateSuccess('')
+
+    queryClient.clear()
+  }
+
   if (userLoading) {
     return <p>Loading user...</p>
   }
 
-  // No authenticated user: use the reusable LoginForm component.
   if (!currentUser) {
     return (
       <LoginForm
@@ -233,11 +159,9 @@ function App() {
     )
   }
 
-  // Determine the user's role.
   const isCustomer = currentUser.role === 'customer'
   const isAgent = currentUser.role === 'agent'
 
-  // Determine the active page for the current role.
   const activePage = isCustomer
     ? activeCustomerPage
     : isAgent
@@ -250,7 +174,6 @@ function App() {
       ? setActiveAgentPage
       : setActiveAdminPage
 
-  // Authenticated application layout
   return (
     <div className="min-h-screen text-slate-800">
       <Sidebar
@@ -279,7 +202,7 @@ function App() {
             <button
               className="rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm font-medium text-slate-700 transition hover:bg-slate-50 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2"
               type="button"
-              onClick={handleLogout}
+              onClick={handleAppLogout}
             >
               Log out
             </button>
@@ -337,7 +260,6 @@ function App() {
             />
           </>
         )}
-
       </main>
     </div>
   )
