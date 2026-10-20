@@ -1,125 +1,104 @@
+import { Eye, Trash2, UserRound } from 'lucide-react'
+import { Badge } from '@/components/ui/badge'
+import { Button } from '@/components/ui/button'
+import { Separator } from '@/components/ui/separator'
 import StatusBadge from '../atoms/StatusBadge'
 
-function TicketTable({
-    tickets,
-    onViewDetails,
-    agents,
-    onAssign,
-    onDelete,
-    assigningTicketId,
-    deletingTicketId,
-}) {
+function TicketTable({ tickets, onViewDetails, agents, onAssign, onDelete, assigningTicketId, deletingTicketId }) {
     const showAdminActions = Boolean(onAssign || onDelete)
+    const priorityStyles = {
+        low: 'border-slate-200 bg-slate-50 text-slate-600',
+        medium: 'border-blue-200 bg-blue-50 text-blue-700',
+        high: 'border-orange-200 bg-orange-50 text-orange-700',
+        urgent: 'border-red-200 bg-red-50 text-red-700',
+    }
 
     return (
-        <div className="table-wrapper">
-            <table>
-                <thead>
-                    <tr>
-                        <th>Ticket</th>
-                        <th>Customer</th>
-                        <th>Priority</th>
-                        <th>Status</th>
-                        <th>Action</th>
-                        {showAdminActions && <th>Admin Actions</th>}
-                    </tr>
-                </thead>
-
-                <tbody>
-                    {tickets.map((ticket) => {
-                        const assignedAgentId =
-                            ticket.assigned_agent_id ??
-                            ticket.assigned_to_id ??
-                            ticket.agent_id ??
-                            ''
-
-                        return (
-                            <tr key={ticket.id}>
-                                <td>
-                                    <strong>{ticket.title}</strong>
-                                    <small>#{ticket.id}</small>
-                                </td>
-
-                                <td>{ticket.customer ?? 'Customer'}</td>
-
-                                <td>
-                                    <span
-                                        className={`priority ${(ticket.priority ?? 'low').toLowerCase()}`}
-                                    >
-                                        {ticket.priority ?? 'Low'}
-                                    </span>
-                                </td>
-
-                                <td>
-                                    <StatusBadge status={ticket.status ?? 'Open'} />
-                                </td>
-
-                                <td>
-                                    <button
-                                        type="button"
-                                        onClick={() => onViewDetails?.(ticket)}
-                                    >
-                                        View Details
-                                    </button>
-                                </td>
-
-                                {showAdminActions && (
-                                    <td>
-                                        <div className="flex flex-col gap-2">
-                                            {onAssign && (
-                                                <select
-                                                    value={assignedAgentId}
-                                                    disabled={assigningTicketId === ticket.id}
-                                                    onChange={(event) =>
-                                                        onAssign(ticket.id, event.target.value)
-                                                    }
-                                                    aria-label={`Assign agent to ${ticket.title}`}
-                                                >
-                                                    <option value="">
-                                                        Select agent
-                                                    </option>
-
-                                                    {(agents ?? []).map((agent) => (
-                                                        <option
-                                                            key={agent.id}
-                                                            value={agent.id}
-                                                        >
-                                                            {agent.email}
-                                                        </option>
-                                                    ))}
-                                                </select>
-                                            )}
-
-                                            {onDelete && (
-                                                <button
-                                                    type="button"
-                                                    disabled={deletingTicketId === ticket.id}
-                                                    onClick={() => onDelete(ticket)}
-                                                >
-                                                    {deletingTicketId === ticket.id
-                                                        ? 'Deleting...'
-                                                        : 'Delete'}
-                                                </button>
-                                            )}
-                                        </div>
-                                    </td>
-                                )}
-                            </tr>
-                        )
-                    })}
-
-                    {tickets.length === 0 && (
-                        <tr>
-                            <td
-                                colSpan={showAdminActions ? 6 : 5}
-                                className="empty-state"
-                            >
-                                No matching tickets found.
-                            </td>
+        <div className="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm">
+            <div className="overflow-x-auto">
+                <table className="w-full min-w-[720px] border-collapse text-left">
+                    <thead>
+                        <tr className="bg-slate-50">
+                            {['Ticket', 'Customer', 'Priority', 'Status', 'Action'].map((heading) => (
+                                <th key={heading} className="px-5 py-4 text-xs font-semibold uppercase tracking-wider text-slate-500">{heading}</th>
+                            ))}
+                            {showAdminActions && <th className="px-5 py-4 text-xs font-semibold uppercase tracking-wider text-slate-500">Admin Actions</th>}
                         </tr>
-                    )}
-                </tbody>
-            </table>
+                    </thead>
+                    <tbody className="divide-y divide-slate-100">
+                        {tickets.map((ticket) => {
+                            const assignedAgentId = ticket.assigned_agent_id ?? ticket.assigned_to_id ?? ticket.agent_id ?? ''
+                            const priority = (ticket.priority ?? 'low').toLowerCase()
+
+                            return (
+                                <tr key={ticket.id} className="transition-colors hover:bg-slate-50/80">
+                                    <td className="px-5 py-4">
+                                        <p className="max-w-[260px] truncate text-sm font-semibold text-slate-800">{ticket.title}</p>
+                                        <p className="mt-1 text-xs text-slate-400">#{ticket.id}</p>
+                                    </td>
+                                    <td className="px-5 py-4 text-sm text-slate-600">{ticket.customer ?? 'Customer'}</td>
+                                    <td className="px-5 py-4">
+                                        <Badge variant="outline" className={priorityStyles[priority] ?? priorityStyles.low}>
+                                            {priority.charAt(0).toUpperCase() + priority.slice(1)}
+                                        </Badge>
+                                    </td>
+                                    <td className="px-5 py-4"><StatusBadge status={ticket.status ?? 'Open'} /></td>
+                                    <td className="px-5 py-4">
+                                        <Button type="button" variant="outline" size="sm" onClick={() => onViewDetails?.(ticket)} className="gap-2">
+                                            <Eye size={15} /> View Details
+                                        </Button>
+                                    </td>
+                                    {showAdminActions && (
+                                        <td className="px-5 py-4">
+                                            <div className="flex min-w-[160px] flex-col gap-2">
+                                                {onAssign && (
+                                                    <div className="relative">
+                                                        <UserRound size={15} className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
+                                                        <select
+                                                            value={assignedAgentId}
+                                                            disabled={assigningTicketId === ticket.id}
+                                                            onChange={(event) => onAssign(ticket.id, event.target.value)}
+                                                            aria-label={`Assign agent to ${ticket.title}`}
+                                                            className="w-full rounded-lg border border-slate-200 bg-white py-2 pl-9 pr-3 text-xs text-slate-700 outline-none transition focus:border-indigo-400 focus:ring-2 focus:ring-indigo-100 disabled:cursor-not-allowed disabled:opacity-50"
+                                                        >
+                                                            <option value="">Select agent</option>
+                                                            {(agents ?? []).map((agent) => (
+                                                                <option key={agent.id} value={agent.id}>{agent.email}</option>
+                                                            ))}
+                                                        </select>
+                                                    </div>
+                                                )}
+                                                {onDelete && (
+                                                    <Button
+                                                        type="button"
+                                                        variant="outline"
+                                                        size="sm"
+                                                        disabled={deletingTicketId === ticket.id}
+                                                        onClick={() => onDelete(ticket)}
+                                                        className="justify-start gap-2 border-red-200 text-red-600 hover:bg-red-50 hover:text-red-700"
+                                                    >
+                                                        <Trash2 size={14} />
+                                                        {deletingTicketId === ticket.id ? 'Deleting...' : 'Delete'}
+                                                    </Button>
+                                                )}
+                                            </div>
+                                        </td>
+                                    )}
+                                </tr>
+                            )
+                        })}
+                        {tickets.length === 0 && (
+                            <tr>
+                                <td colSpan={showAdminActions ? 6 : 5} className="px-5 py-12 text-center">
+                                    <p className="text-sm font-medium text-slate-700">No matching tickets found</p>
+                                    <p className="mt-1 text-xs text-slate-400">Try changing your search or filters.</p>
+                                </td>
+                            </tr>
+                        )}
+                    </tbody>
+                </table>
+            </div>
+            <Separator />
         </div>
     )
 }
