@@ -8,6 +8,8 @@ import {
 } from 'recharts'
 
 import AgentStatCards from '../../components/organisms/agent/AgentStatCards'
+import SplitText from '../../components/atoms/SplitText'
+import AnimatedContent from '../../components/atoms/AnimatedContent'
 
 const STATUS_COLORS = [
     '#6366f1',
@@ -74,12 +76,45 @@ function AgentDashboard({
     }
 
     return (
-        <div className="space-y-6">
+        <AnimatedContent
+            trigger="mount"
+            distance={20}
+            duration={0.5}
+            ease="power3.out"
+            initialOpacity={0}
+            stagger={0.12}
+            className="space-y-6"
+        >
             {error && (
                 <p className="rounded-xl border border-red-200 bg-red-50 p-4 text-sm text-red-700">
                     Could not load assigned tickets: {error}
                 </p>
             )}
+
+
+            <section className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
+                <p className="text-sm font-medium tracking-wide text-indigo-600">
+                    AGENT WORKSPACE
+                </p>
+
+                <SplitText
+                    text="My Dashboard"
+                    tag="h2"
+                    className="mt-2 text-2xl font-bold tracking-tight text-slate-900 sm:text-3xl"
+                    splitType="words"
+                    from={{ opacity: 0, y: 25 }}
+                    to={{ opacity: 1, y: 0 }}
+                    duration={0.6}
+                    delay={0.1}
+                    stagger={0.08}
+                    ease="power3.out"
+                    textAlign="left"
+                />
+
+                <p className="mt-2 text-sm leading-6 text-slate-500">
+                    Track your assigned tickets, their statuses, and priorities.
+                </p>
+            </section>
 
             <AgentStatCards tickets={assignedTickets} />
 
@@ -196,7 +231,7 @@ function AgentDashboard({
                     )}
                 </section>
             </div>
-        </div>
+        </AnimatedContent>
     )
 }
 
