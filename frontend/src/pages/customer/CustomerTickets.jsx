@@ -1,8 +1,8 @@
 import { useState } from 'react'
-
-import SearchBar from '../../components/molecules/SearchBar'
 import TicketTable from '../../components/organisms/TicketTable'
 import CreateTicketForm from '../../components/organisms/CreateTicketForm'
+import TicketFilters from '../../components/molecules/TicketFilters'
+import { filterTickets } from '../../utils/filterTickets'
 
 function CustomerTickets({
     tickets = [],
@@ -15,12 +15,10 @@ function CustomerTickets({
     onViewDetails,
 }) {
     const [search, setSearch] = useState('')
+    const [priority, setPriority] = useState('All')
+    const [status, setStatus] = useState('All')
 
-    const filteredTickets = tickets.filter((ticket) =>
-        (ticket.title ?? '')
-            .toLowerCase()
-            .includes(search.toLowerCase())
-    )
+    const filteredTickets = filterTickets(tickets, search, priority, status)
 
     return (
         <div className="space-y-6">
@@ -42,10 +40,7 @@ function CustomerTickets({
                         </p>
                     </div>
 
-                    <SearchBar
-                        value={search}
-                        onChange={setSearch}
-                    />
+                    <TicketFilters search={search} onSearchChange={setSearch} priority={priority} onPriorityChange={setPriority} status={status} onStatusChange={setStatus} />
                 </div>
 
                 {error && (
