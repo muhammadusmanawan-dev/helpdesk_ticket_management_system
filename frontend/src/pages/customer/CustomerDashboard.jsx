@@ -1,4 +1,5 @@
 import StatCard from '../../components/molecules/StatCard'
+import CustomerStatCards from '../../components/organisms/customer/CustomerStatCards'
 
 function CustomerDashboard({ tickets = [], loading, error }) {
     if (loading) {
@@ -16,38 +17,7 @@ function CustomerDashboard({ tickets = [], loading, error }) {
                     Could not load tickets: {error}
                 </p>
             )}
-
-            <section className="grid grid-cols-1 gap-5 sm:grid-cols-2 xl:grid-cols-4">
-                <StatCard
-                    title="Total tickets"
-                    value={tickets.length}
-                    description="Your support requests"
-                />
-
-                <StatCard
-                    title="Open"
-                    value={tickets.filter(
-                        (ticket) => ticket.status === 'Open'
-                    ).length}
-                    description="Waiting for action"
-                />
-
-                <StatCard
-                    title="In progress"
-                    value={tickets.filter(
-                        (ticket) => ticket.status === 'In Progress'
-                    ).length}
-                    description="Currently being handled"
-                />
-
-                <StatCard
-                    title="Resolved"
-                    value={tickets.filter(
-                        (ticket) => ticket.status === 'Resolved'
-                    ).length}
-                    description="Resolved support requests"
-                />
-            </section>
+            <CustomerStatCards tickets={tickets} />
         </div>
     )
 }
