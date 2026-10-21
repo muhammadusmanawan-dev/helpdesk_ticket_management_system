@@ -1,7 +1,7 @@
 import { useState } from 'react'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
-
-import SearchBar from '../../components/molecules/SearchBar'
+import TicketFilters from '../../components/molecules/TicketFilters'
+import { filterTickets } from '../../utils/filterTickets'
 import TicketTable from '../../components/organisms/TicketTable'
 import {
     getAdminTickets,
@@ -14,6 +14,8 @@ function AdminTickets({ onViewDetails }) {
     const queryClient = useQueryClient()
     const [search, setSearch] = useState('')
     const [actionError, setActionError] = useState('')
+    const [priority, setPriority] = useState('All')
+    const [status, setStatus] = useState('All')
 
     const {
         data: tickets = [],
@@ -60,11 +62,7 @@ function AdminTickets({ onViewDetails }) {
         onError: (error) => setActionError(error.message),
     })
 
-    const filteredTickets = tickets.filter((ticket) =>
-        (ticket.title ?? '')
-            .toLowerCase()
-            .includes(search.toLowerCase())
-    )
+    const filteredTickets = filterTickets(tickets, search, priority, status)
 
     function handleAssign(ticketId, agentId) {
         if (!agentId) return
@@ -93,7 +91,7 @@ function AdminTickets({ onViewDetails }) {
                     <p>View, assign, and manage support tickets.</p>
                 </div>
 
-                <SearchBar value={search} onChange={setSearch} />
+                <TicketFilters search={search} onSearchChange={setSearch} priority={priority} onPriorityChange={setPriority} status={status} onStatusChange={setStatus} />
             </div>
 
             <div className="stats-grid">

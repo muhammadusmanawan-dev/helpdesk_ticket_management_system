@@ -1,7 +1,7 @@
 import { useState } from 'react'
-
-import SearchBar from '../../components/molecules/SearchBar'
 import TicketTable from '../../components/organisms/TicketTable'
+import TicketFilters from '../../components/molecules/TicketFilters'
+import { filterTickets } from '../../utils/filterTickets'
 
 function AgentTickets({
     assignedTickets = [],
@@ -10,12 +10,9 @@ function AgentTickets({
     onViewDetails,
 }) {
     const [search, setSearch] = useState('')
-
-    const filteredTickets = assignedTickets.filter((ticket) =>
-        (ticket.title ?? '')
-            .toLowerCase()
-            .includes(search.toLowerCase())
-    )
+    const [priority, setPriority] = useState('All')
+    const [status, setStatus] = useState('All')
+    const filteredTickets = filterTickets(assignedTickets, search, priority, status)
 
     return (
         <section className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
@@ -29,10 +26,7 @@ function AgentTickets({
                     </p>
                 </div>
 
-                <SearchBar
-                    value={search}
-                    onChange={setSearch}
-                />
+                <TicketFilters search={search} onSearchChange={setSearch} priority={priority} onPriorityChange={setPriority} status={status} onStatusChange={setStatus} />
             </div>
 
             {error && (
