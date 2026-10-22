@@ -19,6 +19,8 @@ from app.tickets.schemas import (
     TicketDashboardSummary,
     AgentPerformance,
     DailyTicketTrend,
+    CustomerDashboardSummary,
+    AgentDashboardSummary,
 )
 
 from app.users.models import UserRole
@@ -95,6 +97,32 @@ async def get_admin_dashboard_summary(
 ):
     return await TicketService.get_dashboard_summary(session)
 
+@router.get(
+    "/customer/dashboard-summary",
+    response_model=CustomerDashboardSummary,
+)
+async def get_customer_dashboard_summary(
+    session: SessionDep,
+    user: User = Depends(require_role("customer")),
+):
+    return await TicketService.get_customer_dashboard_summary(
+        session=session,
+        customer_id=user.id,
+    )
+
+
+@router.get(
+    "/agent/dashboard-summary",
+    response_model=AgentDashboardSummary,
+)
+async def get_agent_dashboard_summary(
+    session: SessionDep,
+    user: User = Depends(require_role("agent")),
+):
+    return await TicketService.get_agent_dashboard_summary(
+        session=session,
+        agent_id=user.id,
+    )
 
 @router.get("/admin/agent-performance",response_model=list[AgentPerformance])
 async def get_admin_agent_performance(
@@ -137,9 +165,15 @@ async def get_assigned_tickets_by_id(
     session: SessionDep,
     user: User = Depends(require_role("agent")),
 ):
+    if agent_id != user.id:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="You can only view your own assigned tickets.",
+        )
+
     return await TicketService.get_assigned_tickets(
         session=session,
-        agent_id=agent_id,
+        agent_id=user.id,
     )
 
 
@@ -280,9 +314,22 @@ async def delete_customer_ticket(ticket_id:int, session:SessionDep, user: User=D
     )
     if not deleted:
         raise HTTPException(
-            status_code=status.HTTP_204_NO_CONTENT,
-            detail="Ticket not found"
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Ticket not found",
         )
     
     return Response(status_code=status.HTTP_204_NO_CONTENT)
 
+
+@router.get(
+    "/agent/priority-summary",
+    response_model=dict[str, int],
+)
+async def get_agent_priority_summary(
+    session: SessionDep,
+    user: User = Depends(require_role("agent")),
+):
+    return await TicketService.get_agent_priority_summary(
+        session=session,
+        agent_id=user.id,
+    )

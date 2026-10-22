@@ -74,12 +74,25 @@ class TicketService:
         )
     
     @staticmethod
-    async def delete_customer_ticket(session:AsyncSession, ticket_id:int, customer_id:UUID):
+    async def delete_customer_ticket(
+        session: AsyncSession,
+        ticket_id: int,
+        customer_id: UUID,
+    ) -> bool:
         ticket = await TicketRepository.get_customer_ticket(
             session=session,
             ticket_id=ticket_id,
-            customer_id=customer_id
+            customer_id=customer_id,
         )
+
+        if ticket is None:
+            return False
+
+        await TicketRepository.delete_customer_ticket(
+            session=session,
+            ticket=ticket,
+        )
+
         return True
 
     @staticmethod
@@ -207,23 +220,29 @@ class TicketService:
     @staticmethod
     async def get_admin_tickets(session: AsyncSession):
         return await TicketRepository.get_all_tickets(session)
-
+    
     @staticmethod
-    async def get_dashboard_summary(session: AsyncSession):
-        counts = await TicketRepository.get_ticket_counts(session)
-
-        tickets = await TicketRepository.get_all_tickets_for_analytics(session)
-        agents = await TicketRepository.get_all_agents(session)
-
+    def _build_ticket_summary(counts: dict) -> dict:
         return {
-            "total_tickets": len(tickets),
+            "total_tickets": sum(counts.values()),
             "open_tickets": counts.get("open", 0),
             "assigned_tickets": counts.get("assigned", 0),
             "in_progress_tickets": counts.get("in_progress", 0),
             "resolved_tickets": counts.get("resolved", 0),
             "closed_tickets": counts.get("closed", 0),
-            "total_agents": len(agents),
         }
+    
+    @staticmethod
+    async def get_dashboard_summary(
+        session: AsyncSession,
+    ):
+        counts = await TicketRepository.get_ticket_counts(session)
+        agents = await TicketRepository.get_all_agents(session)
+
+        summary = TicketService._build_ticket_summary(counts)
+        summary["total_agents"] = len(agents)
+
+        return summary
 
     @staticmethod
     async def get_agent_performance(session: AsyncSession):
@@ -350,3 +369,39 @@ class TicketService:
             session=session,
             query=query,
         )
+
+    @staticmethod
+    async def get_customer_dashboard_summary(
+        session: AsyncSession,
+        customer_id: UUID,
+    ) -> dict:
+        counts = await TicketRepository.get_ticket_counts(
+            session=session,
+            customer_id=customer_id,
+        )
+
+        return TicketService._build_ticket_summary(counts)
+
+    @staticmethod
+    async def get_agent_dashboard_summary(
+        session: AsyncSession,
+        agent_id: UUID,
+    ) -> dict:
+        counts = await TicketRepository.get_ticket_counts(
+            session=session,
+            agent_id=agent_id,
+        )
+
+        return TicketService._build_ticket_summary(counts)
+    
+
+    @staticmethod
+    async def get_agent_priority_summary(
+        session: AsyncSession,
+        agent_id: UUID,
+    ) -> dict:
+        return await TicketRepository.get_agent_priority_counts(
+            session=session,
+            agent_id=agent_id,
+        )
+

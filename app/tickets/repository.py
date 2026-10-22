@@ -138,15 +138,24 @@ class TicketRepository:
         return list(result.scalars().all())
 
     @staticmethod
-    async def get_ticket_counts(session: AsyncSession):
-        result = await session.execute(
-            select(Ticket.status, func.count(Ticket.id))
-            .group_by(Ticket.status)
+    async def get_ticket_counts(session: AsyncSession, customer_id: UUID | None = None, agent_id: UUID | None = None) -> dict:
+        query = select(
+            Ticket.status,
+            func.count(Ticket.id),
         )
 
+        if customer_id is not None:
+            query = query.where(Ticket.customer_id == customer_id)
+
+        if agent_id is not None:
+            query = query.where(Ticket.assigned_agent_id == agent_id)
+
+        query = query.group_by(Ticket.status)
+        result = await session.execute(query)
+
         return {
-            str(status.value if hasattr(status, "value") else status): count
-            for status, count in result.all()
+            str(ticket_status.value if hasattr(ticket_status, "value") else ticket_status): count
+            for ticket_status, count in result.all()
         }
 
     @staticmethod
@@ -194,3 +203,26 @@ class TicketRepository:
             query = select(Ticket).order_by(Ticket.created_at.desc())
 
         return query
+    
+
+    @staticmethod
+    async def get_agent_priority_counts(
+        session: AsyncSession,
+        agent_id: UUID,
+    ) -> dict:
+        query = select(
+            Ticket.priority,
+            func.count(Ticket.id),
+        ).where(
+            Ticket.assigned_agent_id == agent_id
+        ).group_by(
+            Ticket.priority
+        )
+
+        result = await session.execute(query)
+
+        return {
+            str(priority.value if hasattr(priority, "value") else priority).lower(): count
+            for priority, count in result.all()
+        }
+

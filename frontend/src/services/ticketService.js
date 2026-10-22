@@ -83,6 +83,19 @@ export async function getAdminDashboardSummary() {
     return apiClient('/tickets/admin/dashboard-summary')
 }
 
+export async function getCustomerDashboardSummary() {
+    return apiClient('/tickets/customer/dashboard-summary')
+}
+
+export async function getAgentDashboardSummary() {
+    return apiClient('/tickets/agent/dashboard-summary')
+}
+
+export async function getAgentPrioritySummary() {
+    return apiClient('/tickets/agent/priority-summary')
+}
+
+
 export async function getAdminTickets(page = 1, size = 10) {
     const data = await apiClient('/tickets/admin/all', {
         params: { page, size },

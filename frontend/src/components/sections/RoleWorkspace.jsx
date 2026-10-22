@@ -1,3 +1,4 @@
+
 import AdminDashboard from '../../pages/admin/AdminDashboard'
 import AdminTickets from '../../pages/admin/AdminTickets'
 import AgentDashboard from '../../pages/agent/AgentDashboard'
@@ -49,14 +50,7 @@ function RoleWorkspace({
                 />
             )
         }
-
-        return (
-            <CustomerDashboard
-                tickets={tickets}
-                loading={ticketsLoading}
-                error={ticketsError}
-            />
-        )
+        return <CustomerDashboard />
     }
 
     if (role === 'agent') {
@@ -74,14 +68,7 @@ function RoleWorkspace({
                 />
             )
         }
-
-        return (
-            <AgentDashboard
-                assignedTickets={assignedTickets}
-                loading={assignedTicketsLoading}
-                error={assignedTicketsError}
-            />
-        )
+        return <AgentDashboard />
     }
 
     if (activePage === 'Tickets') {

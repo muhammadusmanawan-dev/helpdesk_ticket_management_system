@@ -1,5 +1,7 @@
 import { useState } from 'react'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
+import { LogOut } from 'lucide-react'
+import { Button } from '@/components/ui/button'
 
 import Sidebar from './components/organisms/Sidebar'
 import LoginForm from './components/organisms/LoginForm'
@@ -15,6 +17,8 @@ import {
   updateCustomerTicket,
   updateAssignedTicketStatus,
   updateAdminTicketStatus,
+  getCustomerDashboardSummary,
+  getAgentDashboardSummary,
 } from './services/ticketService'
 
 import './App.css'
@@ -71,7 +75,7 @@ function App() {
   } = useQuery({
     queryKey: ['assignedTickets', agentPage, pageSize],
     queryFn: () => getAssignedTickets(agentPage, pageSize),
-    enabled: currentUser?.role === 'agent',
+    enabled: currentUser?.role === 'agent' && activeAgentPage === 'My Tickets',
   })
 
   const assignedTickets = assignedTicketsData?.items ?? []
@@ -80,6 +84,17 @@ function App() {
 
   const assignedTicketsError =
     assignedTicketsQueryError?.message ?? ''
+
+  const { data: customerSummary, isLoading: customerSummaryLoading, error: customerSummaryQueryError } = useQuery({
+    queryKey: ['customerDashboardSummary'],
+    queryFn: getCustomerDashboardSummary,
+    enabled: currentUser?.role === 'customer',
+  })
+  const { data: agentSummary, isLoading: agentSummaryLoading, error: agentSummaryQueryError } = useQuery({
+    queryKey: ['agentDashboardSummary'],
+    queryFn: getAgentDashboardSummary,
+    enabled: currentUser?.role === 'agent',
+  })
 
   // Customer creates a ticket.
   async function handleCreateTicket(ticketData) {
@@ -209,29 +224,16 @@ function App() {
               </p>
             </div>
 
-            <button
-              className="inline-flex items-center gap-2 rounded-xl border border-slate-200 bg-white px-4 py-2.5 font-semibold text-slate-700 shadow-sm transition hover:border-red-200 hover:bg-red-50 hover:text-red-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2"
+            <Button
               type="button"
+              variant="outline"
               onClick={handleAppLogout}
+              className="rounded-xl border-slate-200 text-slate-700 hover:bg-red-50 hover:text-red-700 hover:border-red-200"
             >
-              <svg
-                xmlns="http://www.w3.org/2000/svg"
-                width="16"
-                height="16"
-                viewBox="0 0 24 24"
-                fill="none"
-                stroke="currentColor"
-                strokeWidth="2"
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                aria-hidden="true"
-              >
-                <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4" />
-                <polyline points="16 17 21 12 16 7" />
-                <line x1="21" x2="9" y1="12" y2="12" />
-              </svg>
+              <LogOut size={16} />
               Log out
-            </button>
+            </Button>
+
           </div>
         </header>
 
