@@ -15,6 +15,14 @@ function RoleWorkspace({
     assignedTickets,
     assignedTicketsLoading,
     assignedTicketsError,
+    customerPage,
+    setCustomerPage,
+    customerTotalPages,
+    customerTotalTickets,
+    agentPage,
+    setAgentPage,
+    agentTotalPages,
+    agentTotalTickets,
     onCreateTicket,
     createLoading,
     createError,
@@ -30,6 +38,10 @@ function RoleWorkspace({
                     tickets={tickets}
                     loading={ticketsLoading}
                     error={ticketsError}
+                    page={customerPage}
+                    setPage={setCustomerPage}
+                    totalPages={customerTotalPages}
+                    totalTickets={customerTotalTickets}
                     onCreate={onCreateTicket}
                     createLoading={createLoading}
                     createError={createError}
@@ -38,14 +50,7 @@ function RoleWorkspace({
                 />
             )
         }
-
-        return (
-            <CustomerDashboard
-                tickets={tickets}
-                loading={ticketsLoading}
-                error={ticketsError}
-            />
-        )
+        return <CustomerDashboard />
     }
 
     if (role === 'agent') {
@@ -55,18 +60,15 @@ function RoleWorkspace({
                     assignedTickets={assignedTickets}
                     loading={assignedTicketsLoading}
                     error={assignedTicketsError}
+                    page={agentPage}
+                    setPage={setAgentPage}
+                    totalPages={agentTotalPages}
+                    totalTickets={agentTotalTickets}
                     onViewDetails={onViewDetails}
                 />
             )
         }
-
-        return (
-            <AgentDashboard
-                assignedTickets={assignedTickets}
-                loading={assignedTicketsLoading}
-                error={assignedTicketsError}
-            />
-        )
+        return <AgentDashboard />
     }
 
     if (activePage === 'Tickets') {

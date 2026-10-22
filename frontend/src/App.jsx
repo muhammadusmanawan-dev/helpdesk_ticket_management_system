@@ -1,5 +1,7 @@
 import { useState } from 'react'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
+import { LogOut } from 'lucide-react'
+import { Button } from '@/components/ui/button'
 
 import Sidebar from './components/organisms/Sidebar'
 import LoginForm from './components/organisms/LoginForm'
@@ -15,6 +17,8 @@ import {
   updateCustomerTicket,
   updateAssignedTicketStatus,
   updateAdminTicketStatus,
+  getCustomerDashboardSummary,
+  getAgentDashboardSummary,
 } from './services/ticketService'
 
 import './App.css'
@@ -34,7 +38,10 @@ function App() {
   } = useAuth()
 
   const [selectedTicket, setSelectedTicket] = useState(null)
+  const [customerPage, setCustomerPage] = useState(1)
+  const [agentPage, setAgentPage] = useState(1)
 
+  const pageSize = 10
   const [createLoading, setCreateLoading] = useState(false)
   const [createError, setCreateError] = useState('')
   const [createSuccess, setCreateSuccess] = useState('')
@@ -45,30 +52,49 @@ function App() {
 
   // Fetch customer tickets.
   const {
-    data: tickets = [],
+    data: customerTicketsData,
     isLoading: ticketsLoading,
     error: ticketsQueryError,
   } = useQuery({
-    queryKey: ['customerTickets'],
-    queryFn: getCustomerTickets,
+    queryKey: ['customerTickets', customerPage, pageSize],
+    queryFn: () => getCustomerTickets(customerPage, pageSize),
     enabled: currentUser?.role === 'customer',
   })
+
+  const tickets = customerTicketsData?.items ?? []
+  const customerTotalPages = customerTicketsData?.pages ?? 0
+  const customerTotalTickets = customerTicketsData?.total ?? 0
 
   const ticketsError = ticketsQueryError?.message ?? ''
 
   // Fetch assigned agent tickets.
   const {
-    data: assignedTickets = [],
+    data: assignedTicketsData,
     isLoading: assignedTicketsLoading,
     error: assignedTicketsQueryError,
   } = useQuery({
-    queryKey: ['assignedTickets'],
-    queryFn: getAssignedTickets,
-    enabled: currentUser?.role === 'agent',
+    queryKey: ['assignedTickets', agentPage, pageSize],
+    queryFn: () => getAssignedTickets(agentPage, pageSize),
+    enabled: currentUser?.role === 'agent' && activeAgentPage === 'My Tickets',
   })
+
+  const assignedTickets = assignedTicketsData?.items ?? []
+  const agentTotalPages = assignedTicketsData?.pages ?? 0
+  const agentTotalTickets = assignedTicketsData?.total ?? 0
 
   const assignedTicketsError =
     assignedTicketsQueryError?.message ?? ''
+
+  const { data: customerSummary, isLoading: customerSummaryLoading, error: customerSummaryQueryError } = useQuery({
+    queryKey: ['customerDashboardSummary'],
+    queryFn: getCustomerDashboardSummary,
+    enabled: currentUser?.role === 'customer',
+  })
+  const { data: agentSummary, isLoading: agentSummaryLoading, error: agentSummaryQueryError } = useQuery({
+    queryKey: ['agentDashboardSummary'],
+    queryFn: getAgentDashboardSummary,
+    enabled: currentUser?.role === 'agent',
+  })
 
   // Customer creates a ticket.
   async function handleCreateTicket(ticketData) {
@@ -183,29 +209,31 @@ function App() {
       />
 
       <main className="min-w-0 px-4 py-6 sm:px-6 min-[651px]:ml-[210px] min-[1001px]:ml-[250px] lg:px-9 lg:py-8">
-        <header className="flex flex-col gap-4 border-b border-slate-200 pb-6 sm:flex-row sm:items-center sm:justify-between">
-          <div>
-            <p className="m-0 text-[11px] font-bold tracking-[1.1px] text-slate-400">
-              SUPPORT WORKSPACE
-            </p>
 
-            <h1 className="mt-2 text-2xl font-bold tracking-tight text-slate-800">
-              {selectedTicket ? 'Ticket Details' : activePage}
-            </h1>
+        <header className="flex flex-col gap-4 border-b border-slate-200 pb-6 sm:flex-row sm:items-center sm:justify-between">
+          <div className="flex items-center gap-3">
           </div>
 
-          <div className="flex items-center gap-3 text-sm font-semibold">
-            <span className="hidden text-slate-600 sm:inline">
-              {currentUser.email}
-            </span>
+          <div className="flex items-center gap-3 text-sm">
+            <div className="hidden text-right sm:block">
+              <p className="font-semibold text-slate-800">
+                {currentUser.email}
+              </p>
+              <p className="mt-0.5 text-xs text-slate-500">
+                Signed in
+              </p>
+            </div>
 
-            <button
-              className="rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm font-medium text-slate-700 transition hover:bg-slate-50 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2"
+            <Button
               type="button"
+              variant="outline"
               onClick={handleAppLogout}
+              className="rounded-xl border-slate-200 text-slate-700 hover:bg-red-50 hover:text-red-700 hover:border-red-200"
             >
+              <LogOut size={16} />
               Log out
-            </button>
+            </Button>
+
           </div>
         </header>
 
@@ -219,30 +247,6 @@ function App() {
           />
         ) : (
           <>
-            <section className="my-7">
-              <div>
-                <p className="m-0 text-[11px] font-bold tracking-[1.1px] text-slate-400">
-                  {isCustomer
-                    ? 'CUSTOMER WORKSPACE'
-                    : isAgent
-                      ? 'AGENT WORKSPACE'
-                      : 'ADMIN WORKSPACE'}
-                </p>
-
-                <h2 className="my-2 text-2xl font-bold tracking-tight text-slate-800">
-                  Welcome back!
-                </h2>
-
-                <p className="m-0 text-sm text-slate-500">
-                  {isCustomer
-                    ? 'Here is an overview of your support tickets.'
-                    : isAgent
-                      ? 'Review and manage tickets assigned to you.'
-                      : 'Welcome to the support workspace.'}
-                </p>
-              </div>
-            </section>
-
             <RoleWorkspace
               currentUser={currentUser}
               activePage={activePage}
@@ -252,6 +256,15 @@ function App() {
               assignedTickets={assignedTickets}
               assignedTicketsLoading={assignedTicketsLoading}
               assignedTicketsError={assignedTicketsError}
+              customerPage={customerPage}
+              setCustomerPage={setCustomerPage}
+              customerTotalPages={customerTotalPages}
+              customerTotalTickets={customerTotalTickets}
+
+              agentPage={agentPage}
+              setAgentPage={setAgentPage}
+              agentTotalPages={agentTotalPages}
+              agentTotalTickets={agentTotalTickets}
               onCreateTicket={handleCreateTicket}
               createLoading={createLoading}
               createError={createError}
@@ -261,7 +274,7 @@ function App() {
           </>
         )}
       </main>
-    </div>
+    </div >
   )
 }
 

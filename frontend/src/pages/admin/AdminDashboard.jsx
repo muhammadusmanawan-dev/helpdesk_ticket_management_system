@@ -1,5 +1,7 @@
 import { useQuery } from '@tanstack/react-query'
 import AdminStatCards from "../../components/organisms/admin/AdminStatCards";
+import SplitText from '../../components/atoms/SplitText'
+import AnimatedContent from '../../components/atoms/AnimatedContent'
 
 import {
     ResponsiveContainer,
@@ -108,7 +110,15 @@ function AdminDashboard() {
     }
 
     return (
-        <div className="space-y-6">
+        <AnimatedContent
+            trigger="mount"
+            distance={20}
+            duration={1}
+            ease="power3.out"
+            initialOpacity={0}
+            stagger={0.12}
+            className="space-y-6"
+        >
             <section className="overflow-hidden rounded-2xl bg-gradient-to-r from-indigo-700 via-blue-700 to-sky-600 p-6 text-white shadow-sm sm:p-8">
                 <p className="text-sm font-medium text-blue-100">
                     ADMIN WORKSPACE
@@ -116,9 +126,19 @@ function AdminDashboard() {
 
                 <div className="mt-3 flex flex-col justify-between gap-5 sm:flex-row sm:items-end">
                     <div>
-                        <h2 className="text-2xl font-bold tracking-tight sm:text-3xl">
-                            Dashboard Overview
-                        </h2>
+                        <SplitText
+                            text="Dashboard Overview"
+                            tag="h2"
+                            className="text-2xl font-bold tracking-tight sm:text-3xl"
+                            splitType="words"
+                            from={{ opacity: 0, y: 25 }}
+                            to={{ opacity: 1, y: 0 }}
+                            duration={0.6}
+                            delay={0.1}
+                            stagger={0.08}
+                            ease="power3.out"
+                            textAlign="left"
+                        />
                         <p className="mt-2 max-w-xl text-sm leading-6 text-blue-100">
                             Monitor ticket statuses, agent performance, and
                             support activity in one place.
@@ -371,7 +391,7 @@ function AdminDashboard() {
                     </p>
                 )}
             </section>
-        </div>
+        </AnimatedContent>
     )
 }
 

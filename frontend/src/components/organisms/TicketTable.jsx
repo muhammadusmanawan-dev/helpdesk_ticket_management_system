@@ -4,8 +4,9 @@ import { Button } from '@/components/ui/button'
 import { Separator } from '@/components/ui/separator'
 import StatusBadge from '../atoms/StatusBadge'
 
-function TicketTable({ tickets, onViewDetails, agents, onAssign, onDelete, assigningTicketId, deletingTicketId }) {
+function TicketTable({ tickets = [], onViewDetails, agents, onAssign, onDelete, assigningTicketId, deletingTicketId, hideCustomer = false }) {
     const showAdminActions = Boolean(onAssign || onDelete)
+    const columnCount = (hideCustomer ? 4 : 5) + (showAdminActions ? 1 : 0)
     const priorityStyles = {
         low: 'border-slate-200 bg-slate-50 text-slate-600',
         medium: 'border-blue-200 bg-blue-50 text-blue-700',
@@ -19,7 +20,7 @@ function TicketTable({ tickets, onViewDetails, agents, onAssign, onDelete, assig
                 <table className="w-full min-w-[720px] border-collapse text-left">
                     <thead>
                         <tr className="bg-slate-50">
-                            {['Ticket', 'Customer', 'Priority', 'Status', 'Action'].map((heading) => (
+                            {['Ticket', ...(!hideCustomer ? ['Customer'] : []), 'Priority', 'Status', 'Action'].map((heading) => (
                                 <th key={heading} className="px-5 py-4 text-xs font-semibold uppercase tracking-wider text-slate-500">{heading}</th>
                             ))}
                             {showAdminActions && <th className="px-5 py-4 text-xs font-semibold uppercase tracking-wider text-slate-500">Admin Actions</th>}
@@ -31,12 +32,14 @@ function TicketTable({ tickets, onViewDetails, agents, onAssign, onDelete, assig
                             const priority = (ticket.priority ?? 'low').toLowerCase()
 
                             return (
-                                <tr key={ticket.id} className="transition-colors hover:bg-slate-50/80">
+                                <tr key={ticket.id} className="h-14 transition-colors hover:bg-slate-50/80">
                                     <td className="px-5 py-4">
                                         <p className="max-w-[260px] truncate text-sm font-semibold text-slate-800">{ticket.title}</p>
                                         <p className="mt-1 text-xs text-slate-400">#{ticket.id}</p>
                                     </td>
-                                    <td className="px-5 py-4 text-sm text-slate-600">{ticket.customer ?? 'Customer'}</td>
+                                    {!hideCustomer && (
+                                        <td className="px-5 py-4 text-sm text-slate-600">{ticket.customer_id ?? 'Customer'}</td>
+                                    )}
                                     <td className="px-5 py-4">
                                         <Badge variant="outline" className={priorityStyles[priority] ?? priorityStyles.low}>
                                             {priority.charAt(0).toUpperCase() + priority.slice(1)}
@@ -89,12 +92,16 @@ function TicketTable({ tickets, onViewDetails, agents, onAssign, onDelete, assig
                         })}
                         {tickets.length === 0 && (
                             <tr>
-                                <td colSpan={showAdminActions ? 6 : 5} className="px-5 py-12 text-center">
+                                <td colSpan={columnCount} className="h-14 px-5 text-center">
                                     <p className="text-sm font-medium text-slate-700">No matching tickets found</p>
-                                    <p className="mt-1 text-xs text-slate-400">Try changing your search or filters.</p>
                                 </td>
                             </tr>
                         )}
+                        {Array.from({ length: Math.max(0, 10 - tickets.length - (tickets.length === 0 ? 1 : 0)) }).map((_, index) => (
+                            <tr key={`empty-${index}`} aria-hidden="true" className="h-14">
+                                <td colSpan={columnCount} className="px-5">&nbsp;</td>
+                            </tr>
+                        ))}
                     </tbody>
                 </table>
             </div>

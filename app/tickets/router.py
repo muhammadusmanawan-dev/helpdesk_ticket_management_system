@@ -13,11 +13,14 @@ from fastapi_pagination.ext.sqlalchemy import apaginate
 from fastapi import BackgroundTasks
 from app.common.background_tasks import process_new_ticket, process_ticket_webhook
 from app.webhooks.events import EVENT_PAYLOAD_BUILDERS, WebhookEvent
+from fastapi import Query
 
 from app.tickets.schemas import (
     TicketDashboardSummary,
     AgentPerformance,
     DailyTicketTrend,
+    CustomerDashboardSummary,
+    AgentDashboardSummary,
 )
 
 from app.users.models import UserRole
@@ -57,25 +60,34 @@ async def get_customer_tickets(
         params,
     )
 
-@router.get("/assigned", response_model=list[TicketRead])
+@router.get("/assigned", response_model=Page[TicketRead])
 async def get_my_assigned_tickets(
     session: SessionDep,
+    ticket_filter: TicketFilter = FilterDepends(TicketFilter),
+    params: Params = Depends(),
     user: User = Depends(require_role("agent")),
 ):
-    print("USER ID:", user.id)
-    print("USER ID TYPE:", type(user.id))
-
-    return await TicketService.get_assigned_tickets(
+    query = await TicketService.get_assigned_tickets_query(
         session=session,
         agent_id=user.id,
+        ticket_filter=ticket_filter,
     )
 
-@router.get("/admin/all", response_model=list[TicketRead])
+    return await apaginate(session, query, params)
+
+@router.get("/admin/all", response_model=Page[TicketRead])
 async def get_all_tickets_for_admin(
     session: SessionDep,
+    ticket_filter: TicketFilter = FilterDepends(TicketFilter),
+    params: Params = Depends(),
     user: User = Depends(require_role("admin")),
 ):
-    return await TicketService.get_admin_tickets(session)
+    query = await TicketService.get_admin_tickets_query(
+        session=session,
+        ticket_filter=ticket_filter,
+    )
+
+    return await apaginate(session, query, params)
 
 
 @router.get("/admin/dashboard-summary", response_model=TicketDashboardSummary)
@@ -85,6 +97,32 @@ async def get_admin_dashboard_summary(
 ):
     return await TicketService.get_dashboard_summary(session)
 
+@router.get(
+    "/customer/dashboard-summary",
+    response_model=CustomerDashboardSummary,
+)
+async def get_customer_dashboard_summary(
+    session: SessionDep,
+    user: User = Depends(require_role("customer")),
+):
+    return await TicketService.get_customer_dashboard_summary(
+        session=session,
+        customer_id=user.id,
+    )
+
+
+@router.get(
+    "/agent/dashboard-summary",
+    response_model=AgentDashboardSummary,
+)
+async def get_agent_dashboard_summary(
+    session: SessionDep,
+    user: User = Depends(require_role("agent")),
+):
+    return await TicketService.get_agent_dashboard_summary(
+        session=session,
+        agent_id=user.id,
+    )
 
 @router.get("/admin/agent-performance",response_model=list[AgentPerformance])
 async def get_admin_agent_performance(
@@ -127,9 +165,15 @@ async def get_assigned_tickets_by_id(
     session: SessionDep,
     user: User = Depends(require_role("agent")),
 ):
+    if agent_id != user.id:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="You can only view your own assigned tickets.",
+        )
+
     return await TicketService.get_assigned_tickets(
         session=session,
-        agent_id=agent_id,
+        agent_id=user.id,
     )
 
 
@@ -270,9 +314,22 @@ async def delete_customer_ticket(ticket_id:int, session:SessionDep, user: User=D
     )
     if not deleted:
         raise HTTPException(
-            status_code=status.HTTP_204_NO_CONTENT,
-            detail="Ticket not found"
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Ticket not found",
         )
     
     return Response(status_code=status.HTTP_204_NO_CONTENT)
 
+
+@router.get(
+    "/agent/priority-summary",
+    response_model=dict[str, int],
+)
+async def get_agent_priority_summary(
+    session: SessionDep,
+    user: User = Depends(require_role("agent")),
+):
+    return await TicketService.get_agent_priority_summary(
+        session=session,
+        agent_id=user.id,
+    )

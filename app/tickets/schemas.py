@@ -53,3 +53,19 @@ class DailyTicketTrend(BaseModel):
     date: str
     created: int
     resolved: int
+    
+class CustomerDashboardSummary(BaseModel):
+    total_tickets: int
+    open_tickets: int
+    assigned_tickets: int
+    in_progress_tickets: int
+    resolved_tickets: int
+    closed_tickets: int
+
+class AgentDashboardSummary(BaseModel):
+    total_tickets: int
+    open_tickets: int
+    assigned_tickets: int
+    in_progress_tickets: int
+    resolved_tickets: int
+    closed_tickets: int
