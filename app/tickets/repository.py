@@ -171,3 +171,26 @@ class TicketRepository:
             )
         )
         return result.scalar_one_or_none()
+
+    @staticmethod
+    async def get_assigned_tickets_query(
+        session: AsyncSession,
+        agent_id: UUID,
+        query=None,
+    ):
+        if query is None:
+            query = select(Ticket).order_by(Ticket.created_at.desc())
+
+        return query.where(
+            Ticket.assigned_agent_id == agent_id
+        )
+
+    @staticmethod
+    async def get_admin_tickets_query(
+        session: AsyncSession,
+        query=None,
+    ):
+        if query is None:
+            query = select(Ticket).order_by(Ticket.created_at.desc())
+
+        return query

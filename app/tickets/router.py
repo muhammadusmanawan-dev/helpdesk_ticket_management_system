@@ -13,6 +13,7 @@ from fastapi_pagination.ext.sqlalchemy import apaginate
 from fastapi import BackgroundTasks
 from app.common.background_tasks import process_new_ticket, process_ticket_webhook
 from app.webhooks.events import EVENT_PAYLOAD_BUILDERS, WebhookEvent
+from fastapi import Query
 
 from app.tickets.schemas import (
     TicketDashboardSummary,
@@ -57,25 +58,34 @@ async def get_customer_tickets(
         params,
     )
 
-@router.get("/assigned", response_model=list[TicketRead])
+@router.get("/assigned", response_model=Page[TicketRead])
 async def get_my_assigned_tickets(
     session: SessionDep,
+    ticket_filter: TicketFilter = FilterDepends(TicketFilter),
+    params: Params = Depends(),
     user: User = Depends(require_role("agent")),
 ):
-    print("USER ID:", user.id)
-    print("USER ID TYPE:", type(user.id))
-
-    return await TicketService.get_assigned_tickets(
+    query = await TicketService.get_assigned_tickets_query(
         session=session,
         agent_id=user.id,
+        ticket_filter=ticket_filter,
     )
 
-@router.get("/admin/all", response_model=list[TicketRead])
+    return await apaginate(session, query, params)
+
+@router.get("/admin/all", response_model=Page[TicketRead])
 async def get_all_tickets_for_admin(
     session: SessionDep,
+    ticket_filter: TicketFilter = FilterDepends(TicketFilter),
+    params: Params = Depends(),
     user: User = Depends(require_role("admin")),
 ):
-    return await TicketService.get_admin_tickets(session)
+    query = await TicketService.get_admin_tickets_query(
+        session=session,
+        ticket_filter=ticket_filter,
+    )
+
+    return await apaginate(session, query, params)
 
 
 @router.get("/admin/dashboard-summary", response_model=TicketDashboardSummary)

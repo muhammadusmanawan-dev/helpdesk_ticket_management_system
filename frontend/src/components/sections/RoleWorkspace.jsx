@@ -1,4 +1,3 @@
-
 import AdminDashboard from '../../pages/admin/AdminDashboard'
 import AdminTickets from '../../pages/admin/AdminTickets'
 import AgentDashboard from '../../pages/agent/AgentDashboard'
@@ -15,6 +14,14 @@ function RoleWorkspace({
     assignedTickets,
     assignedTicketsLoading,
     assignedTicketsError,
+    customerPage,
+    setCustomerPage,
+    customerTotalPages,
+    customerTotalTickets,
+    agentPage,
+    setAgentPage,
+    agentTotalPages,
+    agentTotalTickets,
     onCreateTicket,
     createLoading,
     createError,
@@ -30,6 +37,10 @@ function RoleWorkspace({
                     tickets={tickets}
                     loading={ticketsLoading}
                     error={ticketsError}
+                    page={customerPage}
+                    setPage={setCustomerPage}
+                    totalPages={customerTotalPages}
+                    totalTickets={customerTotalTickets}
                     onCreate={onCreateTicket}
                     createLoading={createLoading}
                     createError={createError}
@@ -55,6 +66,10 @@ function RoleWorkspace({
                     assignedTickets={assignedTickets}
                     loading={assignedTicketsLoading}
                     error={assignedTicketsError}
+                    page={agentPage}
+                    setPage={setAgentPage}
+                    totalPages={agentTotalPages}
+                    totalTickets={agentTotalTickets}
                     onViewDetails={onViewDetails}
                 />
             )

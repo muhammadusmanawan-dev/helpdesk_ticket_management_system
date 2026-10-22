@@ -320,3 +320,33 @@ class TicketService:
             ticket=ticket,
         )
         return True
+
+    @staticmethod
+    async def get_assigned_tickets_query(
+        session: AsyncSession,
+        agent_id: UUID,
+        ticket_filter: TicketFilter,
+    ):
+        query = select(Ticket)
+        query = ticket_filter.filter(query)
+        query = ticket_filter.sort(query)
+
+        return await TicketRepository.get_assigned_tickets_query(
+            session=session,
+            agent_id=agent_id,
+            query=query,
+        )
+
+    @staticmethod
+    async def get_admin_tickets_query(
+        session: AsyncSession,
+        ticket_filter: TicketFilter,
+    ):
+        query = select(Ticket)
+        query = ticket_filter.filter(query)
+        query = ticket_filter.sort(query)
+
+        return await TicketRepository.get_admin_tickets_query(
+            session=session,
+            query=query,
+        )

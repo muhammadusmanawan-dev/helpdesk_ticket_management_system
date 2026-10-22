@@ -19,12 +19,15 @@ function normalizeTicket(ticket) {
     }
 }
 
-export async function getCustomerTickets() {
+export async function getCustomerTickets(page = 1, size = 10) {
     const data = await apiClient('/tickets/', {
-        params: { page: 1, size: 50 },
+        params: { page, size },
     })
 
-    return data.items.map(normalizeTicket)
+    return {
+        ...data,
+        items: data.items.map(normalizeTicket),
+    }
 }
 
 export async function createCustomerTicket(ticketData) {
@@ -56,10 +59,15 @@ export async function updateCustomerTicket(ticketId, ticketData) {
     return normalizeTicket(data)
 }
 
-export async function getAssignedTickets() {
-    const data = await apiClient('/tickets/assigned')
+export async function getAssignedTickets(page = 1, size = 10) {
+    const data = await apiClient('/tickets/assigned', {
+        params: { page, size },
+    })
 
-    return data.map(normalizeTicket)
+    return {
+        ...data,
+        items: data.items.map(normalizeTicket),
+    }
 }
 
 export async function updateAssignedTicketStatus(ticketId, status) {
@@ -75,11 +83,15 @@ export async function getAdminDashboardSummary() {
     return apiClient('/tickets/admin/dashboard-summary')
 }
 
-export async function getAdminTickets() {
-    const data = await apiClient('/tickets/admin/all')
-    const tickets = Array.isArray(data) ? data : data.items ?? []
+export async function getAdminTickets(page = 1, size = 10) {
+    const data = await apiClient('/tickets/admin/all', {
+        params: { page, size },
+    })
 
-    return tickets.map(normalizeTicket)
+    return {
+        ...data,
+        items: data.items.map(normalizeTicket),
+    }
 }
 
 export async function getAdminAgents() {

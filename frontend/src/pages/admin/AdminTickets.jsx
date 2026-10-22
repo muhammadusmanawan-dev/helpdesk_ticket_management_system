@@ -16,16 +16,21 @@ function AdminTickets({ onViewDetails }) {
     const [actionError, setActionError] = useState('')
     const [priority, setPriority] = useState('All')
     const [status, setStatus] = useState('All')
+    const [page, setPage] = useState(1)
+    const pageSize = 10
 
     const {
-        data: tickets = [],
+        data: ticketsData,
         isLoading: ticketsLoading,
         error: ticketsError,
     } = useQuery({
-        queryKey: ['adminTickets'],
-        queryFn: getAdminTickets,
-        enabled: true,
+        queryKey: ['adminTickets', page, pageSize],
+        queryFn: () => getAdminTickets(page, pageSize),
     })
+
+    const tickets = ticketsData?.items ?? []
+    const totalTickets = ticketsData?.total ?? 0
+    const totalPages = ticketsData?.pages ?? 0
 
     const {
         data: agents = [],
@@ -34,24 +39,17 @@ function AdminTickets({ onViewDetails }) {
     } = useQuery({
         queryKey: ['adminAgents'],
         queryFn: getAdminAgents,
-        enabled: true,
     })
 
     async function refreshAdminData() {
         await Promise.all([
-            queryClient.invalidateQueries({
-                queryKey: ['adminTickets'],
-            }),
-
-            queryClient.invalidateQueries({
-                queryKey: ['adminDashboardSummary'],
-            })
+            queryClient.invalidateQueries({ queryKey: ['adminTickets'] }),
+            queryClient.invalidateQueries({ queryKey: ['adminDashboardSummary'] }),
         ])
     }
 
     const assignMutation = useMutation({
-        mutationFn: ({ ticketId, agentId }) =>
-            assignTicketToAgent(ticketId, agentId),
+        mutationFn: ({ ticketId, agentId }) => assignTicketToAgent(ticketId, agentId),
         onSuccess: refreshAdminData,
         onError: (error) => setActionError(error.message),
     })
@@ -66,7 +64,6 @@ function AdminTickets({ onViewDetails }) {
 
     function handleAssign(ticketId, agentId) {
         if (!agentId) return
-
         setActionError('')
         assignMutation.mutate({ ticketId, agentId })
     }
@@ -75,11 +72,14 @@ function AdminTickets({ onViewDetails }) {
         const confirmed = window.confirm(
             `Are you sure you want to delete "${ticket.title}"?`
         )
-
         if (!confirmed) return
-
         setActionError('')
         deleteMutation.mutate(ticket.id)
+    }
+
+    function handleFilterChange(setter, value) {
+        setter(value)
+        setPage(1)
     }
 
     return (
@@ -90,39 +90,35 @@ function AdminTickets({ onViewDetails }) {
                     <h2>All Tickets</h2>
                     <p>View, assign, and manage support tickets.</p>
                 </div>
-
-                <TicketFilters search={search} onSearchChange={setSearch} priority={priority} onPriorityChange={setPriority} status={status} onStatusChange={setStatus} />
+                <TicketFilters
+                    search={search}
+                    onSearchChange={(value) => handleFilterChange(setSearch, value)}
+                    priority={priority}
+                    onPriorityChange={(value) => handleFilterChange(setPriority, value)}
+                    status={status}
+                    onStatusChange={(value) => handleFilterChange(setStatus, value)}
+                />
             </div>
 
             <div className="stats-grid">
                 <div className="stat-card">
                     <p>Total Tickets</p>
-                    <h3>{tickets.length}</h3>
+                    <h3>{totalTickets}</h3>
                 </div>
             </div>
 
             {ticketsLoading && <p>Loading tickets...</p>}
-
             {ticketsError && (
-                <p className="api-error">
-                    Could not load tickets: {ticketsError.message}
-                </p>
+                <p className="api-error">Could not load tickets: {ticketsError.message}</p>
             )}
-
             {agentsError && (
-                <p className="api-error">
-                    Could not load agents: {agentsError.message}
-                </p>
+                <p className="api-error">Could not load agents: {agentsError.message}</p>
             )}
-
-            {actionError && (
-                <p className="api-error">{actionError}</p>
-            )}
+            {actionError && <p className="api-error">{actionError}</p>}
 
             {!ticketsLoading && !ticketsError && (
                 <>
                     {agentsLoading && <p>Loading agents...</p>}
-
                     <TicketTable
                         tickets={filteredTickets}
                         onViewDetails={onViewDetails}
@@ -130,16 +126,37 @@ function AdminTickets({ onViewDetails }) {
                         onAssign={handleAssign}
                         onDelete={handleDelete}
                         assigningTicketId={
-                            assignMutation.isPending
-                                ? assignMutation.variables?.ticketId
-                                : null
+                            assignMutation.isPending ? assignMutation.variables?.ticketId : null
                         }
                         deletingTicketId={
-                            deleteMutation.isPending
-                                ? deleteMutation.variables
-                                : null
+                            deleteMutation.isPending ? deleteMutation.variables : null
                         }
                     />
+
+                    <div className="mt-5 flex flex-wrap items-center justify-between gap-3">
+                        <p className="text-sm text-slate-500">
+                            Total: {totalTickets} tickets
+                            {totalPages > 0 && ` · Page ${page} of ${totalPages}`}
+                        </p>
+                        <div className="flex gap-2">
+                            <button
+                                type="button"
+                                onClick={() => setPage((current) => current - 1)}
+                                disabled={page <= 1 || ticketsLoading}
+                                className="rounded-lg border border-slate-200 px-4 py-2 text-sm font-medium disabled:cursor-not-allowed disabled:opacity-40"
+                            >
+                                Previous
+                            </button>
+                            <button
+                                type="button"
+                                onClick={() => setPage((current) => current + 1)}
+                                disabled={page >= totalPages || totalPages === 0 || ticketsLoading}
+                                className="rounded-lg border border-slate-200 px-4 py-2 text-sm font-medium disabled:cursor-not-allowed disabled:opacity-40"
+                            >
+                                Next
+                            </button>
+                        </div>
+                    </div>
                 </>
             )}
         </section>

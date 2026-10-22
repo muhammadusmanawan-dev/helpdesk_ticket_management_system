@@ -34,7 +34,10 @@ function App() {
   } = useAuth()
 
   const [selectedTicket, setSelectedTicket] = useState(null)
+  const [customerPage, setCustomerPage] = useState(1)
+  const [agentPage, setAgentPage] = useState(1)
 
+  const pageSize = 10
   const [createLoading, setCreateLoading] = useState(false)
   const [createError, setCreateError] = useState('')
   const [createSuccess, setCreateSuccess] = useState('')
@@ -45,27 +48,35 @@ function App() {
 
   // Fetch customer tickets.
   const {
-    data: tickets = [],
+    data: customerTicketsData,
     isLoading: ticketsLoading,
     error: ticketsQueryError,
   } = useQuery({
-    queryKey: ['customerTickets'],
-    queryFn: getCustomerTickets,
+    queryKey: ['customerTickets', customerPage, pageSize],
+    queryFn: () => getCustomerTickets(customerPage, pageSize),
     enabled: currentUser?.role === 'customer',
   })
+
+  const tickets = customerTicketsData?.items ?? []
+  const customerTotalPages = customerTicketsData?.pages ?? 0
+  const customerTotalTickets = customerTicketsData?.total ?? 0
 
   const ticketsError = ticketsQueryError?.message ?? ''
 
   // Fetch assigned agent tickets.
   const {
-    data: assignedTickets = [],
+    data: assignedTicketsData,
     isLoading: assignedTicketsLoading,
     error: assignedTicketsQueryError,
   } = useQuery({
-    queryKey: ['assignedTickets'],
-    queryFn: getAssignedTickets,
+    queryKey: ['assignedTickets', agentPage, pageSize],
+    queryFn: () => getAssignedTickets(agentPage, pageSize),
     enabled: currentUser?.role === 'agent',
   })
+
+  const assignedTickets = assignedTicketsData?.items ?? []
+  const agentTotalPages = assignedTicketsData?.pages ?? 0
+  const agentTotalTickets = assignedTicketsData?.total ?? 0
 
   const assignedTicketsError =
     assignedTicketsQueryError?.message ?? ''
@@ -243,6 +254,15 @@ function App() {
               assignedTickets={assignedTickets}
               assignedTicketsLoading={assignedTicketsLoading}
               assignedTicketsError={assignedTicketsError}
+              customerPage={customerPage}
+              setCustomerPage={setCustomerPage}
+              customerTotalPages={customerTotalPages}
+              customerTotalTickets={customerTotalTickets}
+
+              agentPage={agentPage}
+              setAgentPage={setAgentPage}
+              agentTotalPages={agentTotalPages}
+              agentTotalTickets={agentTotalTickets}
               onCreateTicket={handleCreateTicket}
               createLoading={createLoading}
               createError={createError}
