@@ -140,6 +140,20 @@ async def get_admin_ticket_trends(
     return await TicketService.get_ticket_trends(session)
 
 
+@router.get(
+    "/agent/priority-summary",
+    response_model=dict[str, int],
+)
+async def get_agent_priority_summary(
+    session: SessionDep,
+    user: User = Depends(require_role("agent")),
+):
+    return await TicketService.get_agent_priority_summary(
+        session=session,
+        agent_id=user.id,
+    )
+
+
 @router.delete("/admin/{ticket_id}", status_code=status.HTTP_204_NO_CONTENT)
 async def delete_ticket_for_admin(
     ticket_id: int,
@@ -320,16 +334,38 @@ async def delete_customer_ticket(ticket_id:int, session:SessionDep, user: User=D
     
     return Response(status_code=status.HTTP_204_NO_CONTENT)
 
-
-@router.get(
-    "/agent/priority-summary",
-    response_model=dict[str, int],
-)
-async def get_agent_priority_summary(
+@router.get("/agent/ticket/{ticket_id}", response_model=TicketRead)
+async def get_agent_ticket(
+    ticket_id: int,
     session: SessionDep,
     user: User = Depends(require_role("agent")),
 ):
-    return await TicketService.get_agent_priority_summary(
+    ticket = await TicketService.get_assigned_ticket(
         session=session,
+        ticket_id=ticket_id,
         agent_id=user.id,
     )
+    if ticket is None:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Ticket not found",
+        )
+    return ticket
+
+
+@router.get("/admin/ticket/{ticket_id}", response_model=TicketRead)
+async def get_admin_ticket(
+    ticket_id: int,
+    session: SessionDep,
+    user: User = Depends(require_role("admin")),
+):
+    ticket = await TicketService.get_admin_ticket(
+        session=session,
+        ticket_id=ticket_id,
+    )
+    if ticket is None:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Ticket not found",
+        )
+    return ticket

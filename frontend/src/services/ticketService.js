@@ -141,3 +141,18 @@ export async function updateAdminTicketStatus(ticketId, status) {
 
     return normalizeTicket(data)
 }
+
+export async function getCustomerTicket(ticketId) {
+    const data = await apiClient(`/tickets/${ticketId}`)
+    return normalizeTicket(data)
+}
+
+export async function getAgentTicket(ticketId) {
+    const data = await apiClient(`/tickets/agent/ticket/${ticketId}`)
+    return normalizeTicket(data)
+}
+
+export async function getAdminTicket(ticketId) {
+    const data = await apiClient(`/tickets/admin/ticket/${ticketId}`)
+    return normalizeTicket(data)
+}

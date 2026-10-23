@@ -404,4 +404,25 @@ class TicketService:
             session=session,
             agent_id=agent_id,
         )
+    
+    @staticmethod
+    async def get_assigned_ticket(
+        session: AsyncSession,
+        ticket_id: int,
+        agent_id: UUID,
+    ) -> Ticket | None:
+        return await TicketRepository.get_assigned_ticket(
+            session=session,
+            ticket_id=ticket_id,
+            agent_id=agent_id,
+        )
 
+    @staticmethod
+    async def get_admin_ticket(
+        session: AsyncSession,
+        ticket_id: int,
+    ) -> Ticket | None:
+        return await TicketRepository.get_ticket(
+            session=session,
+            ticket_id=ticket_id,
+        )
