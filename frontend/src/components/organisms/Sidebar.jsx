@@ -6,29 +6,27 @@ import {
     UserRound,
     ChevronRight,
 } from 'lucide-react'
-import { Button } from '@/components/ui/button'
+import { NavLink } from 'react-router'
 
 const navigationByRole = {
     admin: [
-        { label: 'Dashboard', icon: LayoutDashboard },
-        { label: 'Tickets', icon: Ticket },
+        { label: 'Dashboard', path: '/admin/dashboard', icon: LayoutDashboard },
+        { label: 'Tickets', path: '/admin/tickets', icon: Ticket },
     ],
     agent: [
-        { label: 'Dashboard', icon: LayoutDashboard },
-        { label: 'My Tickets', icon: Ticket },
+        { label: 'Dashboard', path: '/agent/dashboard', icon: LayoutDashboard },
+        { label: 'My Tickets', path: '/agent/tickets', icon: Ticket },
     ],
     customer: [
-        { label: 'Dashboard', icon: LayoutDashboard },
-        { label: 'My Tickets', icon: Ticket },
+        { label: 'Dashboard', path: '/customer/dashboard', icon: LayoutDashboard },
+        { label: 'My Tickets', path: '/customer/tickets', icon: Ticket },
     ],
 }
 
-function Sidebar({ currentUser, activePage, onNavigate }) {
+function Sidebar({ currentUser }) {
     const role = currentUser?.role
     const navigationItems = navigationByRole[role] ?? []
-    const roleLabel = role
-        ? role.charAt(0).toUpperCase() + role.slice(1)
-        : 'Support workspace'
+    const roleLabel = role ? role.charAt(0).toUpperCase() + role.slice(1) : 'Support workspace'
     const userInitial = (currentUser?.email?.[0] || 'U').toUpperCase()
 
     return (
@@ -48,29 +46,33 @@ function Sidebar({ currentUser, activePage, onNavigate }) {
             </div>
             <nav aria-label="Main navigation" className="grid gap-2 max-[650px]:grid-cols-2">
                 {navigationItems.map((item) => {
-                    const isActive = item.label === activePage
                     const Icon = item.icon
                     return (
-                        <Button
-                            key={item.label}
-                            type="button"
-                            variant="ghost"
-                            onClick={() => onNavigate?.(item.label)}
-                            className={`group relative !h-auto w-full justify-start gap-3 overflow-hidden rounded-xl px-3 py-3 text-left transition-all duration-200 ${isActive
-                                ? 'bg-indigo-500/15 font-semibold text-indigo-300 hover:bg-indigo-500/20 hover:text-indigo-200'
-                                : 'font-medium text-slate-300 hover:bg-slate-800 hover:text-white'
-                                }`}
+                        <NavLink
+                            key={item.path}
+                            to={item.path}
+                            end
+                            className={({ isActive }) =>
+                                `group relative flex w-full items-center gap-3 overflow-hidden rounded-xl px-3 py-3 text-left transition-all duration-200 ${isActive
+                                    ? 'bg-indigo-500/15 font-semibold text-indigo-300 hover:bg-indigo-500/20 hover:text-indigo-200'
+                                    : 'font-medium text-slate-300 hover:bg-slate-800 hover:text-white'
+                                }`
+                            }
                         >
-                            {isActive && <span className="absolute bottom-2 left-0 top-2 w-1 rounded-r-full bg-indigo-400" />}
-                            <span className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-lg transition-colors ${isActive
-                                ? 'bg-indigo-500/20 text-indigo-300'
-                                : 'bg-slate-800 text-slate-400 group-hover:bg-slate-700 group-hover:text-white'
-                                }`}>
-                                <Icon size={19} strokeWidth={2} />
-                            </span>
-                            <span className="text-sm">{item.label}</span>
-                            {isActive && <ChevronRight size={16} className="ml-auto text-indigo-300" />}
-                        </Button>
+                            {({ isActive }) => (
+                                <>
+                                    {isActive && <span className="absolute bottom-2 left-0 top-2 w-1 rounded-r-full bg-indigo-400" />}
+                                    <span className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-lg transition-colors ${isActive
+                                        ? 'bg-indigo-500/20 text-indigo-300'
+                                        : 'bg-slate-800 text-slate-400 group-hover:bg-slate-700 group-hover:text-white'
+                                        }`}>
+                                        <Icon size={19} strokeWidth={2} />
+                                    </span>
+                                    <span className="text-sm">{item.label}</span>
+                                    {isActive && <ChevronRight size={16} className="ml-auto text-indigo-300" />}
+                                </>
+                            )}
+                        </NavLink>
                     )
                 })}
             </nav>
